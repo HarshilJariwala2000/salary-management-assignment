@@ -9,4 +9,10 @@ describe('employees.get', () => {
 
     expect(await caller.employees.get({ id: created.id })).toEqual(created);
   });
+
+  it('returns not-found for an employee who does not exist', async () => {
+    const { caller } = await makeCaller();
+
+    await expect(caller.employees.get({ id: 9999 })).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
 });
