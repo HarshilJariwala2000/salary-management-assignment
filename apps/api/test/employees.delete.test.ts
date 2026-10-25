@@ -15,4 +15,10 @@ describe('employees.delete', () => {
     const overview = await caller.insights.countryOverview({ countryId: asha.country.id });
     expect(overview.roles[0]!.summary).toMatchObject({ headcount: 1, min: 3_000_000 });
   });
+
+  it('returns not-found for an employee who does not exist', async () => {
+    const { caller } = await makeCaller();
+
+    await expect(caller.employees.delete({ id: 9999 })).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
 });
