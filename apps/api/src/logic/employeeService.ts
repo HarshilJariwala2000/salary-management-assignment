@@ -1,13 +1,18 @@
 import type { EmployeeDraft, EmployeeListQuery } from '@salary/shared';
-import type { EmployeeStore, EmployeeView, Page } from './ports';
+import { InvalidField } from './errors';
+import type { Clock, EmployeeStore, EmployeeView, Page } from './ports';
 
-export function createEmployeeService({ employees }: { employees: EmployeeStore }) {
+export function createEmployeeService({ employees, clock }: { employees: EmployeeStore; clock: Clock }) {
   return {
     list(query: EmployeeListQuery): Promise<Page<EmployeeView>> {
       return employees.list(query);
     },
 
-    create(draft: EmployeeDraft): Promise<EmployeeView> {
+    async create(draft: EmployeeDraft): Promise<EmployeeView> {
+      // ISO dates compare correctly as strings.
+      if (draft.joiningDate > clock.today()) {
+        throw new InvalidField('joiningDate', 'future', 'Joining date cannot be in the future');
+      }
       return employees.create(draft);
     },
   };
