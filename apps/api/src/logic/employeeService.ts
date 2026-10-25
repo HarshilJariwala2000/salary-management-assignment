@@ -11,6 +11,21 @@ export function createEmployeeService({
   lookups: LookupStore;
   clock: Clock;
 }) {
+  /** Business rules every create and update must pass before anything is written. */
+  async function checkDraft(draft: EmployeeDraft): Promise<void> {
+    // ISO dates compare correctly as strings.
+    if (draft.joiningDate > clock.today()) {
+      throw new InvalidField('joiningDate', 'future', 'Joining date cannot be in the future');
+    }
+    // Checked up front: SQLite's foreign-key error doesn't say which column failed.
+    if (!(await lookups.countryExists(draft.countryId))) {
+      throw new InvalidField('countryId', 'unknown', 'Unknown country');
+    }
+    if (!(await lookups.roleExists(draft.roleId))) {
+      throw new InvalidField('roleId', 'unknown', 'Unknown role');
+    }
+  }
+
   return {
     list(query: EmployeeListQuery): Promise<Page<EmployeeView>> {
       return employees.list(query);
@@ -23,21 +38,12 @@ export function createEmployeeService({
     },
 
     async create(draft: EmployeeDraft): Promise<EmployeeView> {
-      // ISO dates compare correctly as strings.
-      if (draft.joiningDate > clock.today()) {
-        throw new InvalidField('joiningDate', 'future', 'Joining date cannot be in the future');
-      }
-      // Checked up front: SQLite's foreign-key error doesn't say which column failed.
-      if (!(await lookups.countryExists(draft.countryId))) {
-        throw new InvalidField('countryId', 'unknown', 'Unknown country');
-      }
-      if (!(await lookups.roleExists(draft.roleId))) {
-        throw new InvalidField('roleId', 'unknown', 'Unknown role');
-      }
+      await checkDraft(draft);
       return employees.create(draft);
     },
 
     async update(id: number, draft: EmployeeDraft): Promise<EmployeeView> {
+      await checkDraft(draft);
       const employee = await employees.update(id, draft);
       if (!employee) throw new NotFound('employee');
       return employee;
