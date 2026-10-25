@@ -133,4 +133,20 @@ describe('Insights page', () => {
     expect(calls.some((c) => c.path === 'insights.roleDetail' && (c.input as { percent: number }).percent === 60)).toBe(false);
     expect(screen.getByRole('table', { name: 'Top 6% earners' })).toBeInTheDocument();
   });
+
+  it('explains why a role with one employee lists that person at both ends', async () => {
+    const only = { id: 30, fullName: 'Gita Bose', annualCtc: 2_500_000, joiningDate: '2021-05-10', differenceFromMedian: 0 };
+    const { user } = await openInsights({
+      'insights.roleDetail': {
+        ...indiaRecruiterDetail,
+        summary: { ...indiaRecruiterDetail.summary, headcount: 1 },
+        bottom: [only],
+        top: [only],
+      },
+    });
+    await user.selectOptions(screen.getByLabelText('Country'), 'India');
+    await user.click(await screen.findByRole('button', { name: 'Recruiter' }));
+
+    expect(await screen.findByText('Only one employee in this role, so they appear in both lists')).toBeInTheDocument();
+  });
 });
