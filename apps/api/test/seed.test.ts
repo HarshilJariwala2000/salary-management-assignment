@@ -30,4 +30,17 @@ describe('generateSeed', () => {
     }
     expect(new Set(dates.map((d) => d.slice(0, 4))).size).toBeGreaterThanOrEqual(15);
   });
+
+  it('spreads headcount across countries by their weights and uses every role', () => {
+    const employees = generateSeed({ count: 5000, seed: 11, today });
+    const share = (isoCode: string) => employees.filter((e) => e.countryIsoCode === isoCode).length / employees.length;
+
+    expect(share('IN')).toBeGreaterThan(0.36);
+    expect(share('IN')).toBeLessThan(0.44);
+    expect(share('US')).toBeGreaterThan(0.21);
+    expect(share('US')).toBeLessThan(0.29);
+    expect(share('BR')).toBeGreaterThan(0.03);
+    expect(share('BR')).toBeLessThan(0.07);
+    expect(new Set(employees.map((e) => e.roleName)).size).toBe(15);
+  });
 });
