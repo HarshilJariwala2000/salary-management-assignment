@@ -24,8 +24,18 @@ export const appRouter = router({
       return { country, roles: roles.map((r) => ({ ...r, summary: roundSummary(r.summary) })) };
     }),
     roleDetail: procedure.input(roleDetailInput).query(async ({ ctx, input }) => {
-      const detail = await ctx.insights.roleDetail(input.countryId, input.roleId);
-      return { ...detail, summary: roundSummary(detail.summary), histogram: roundHistogram(detail.histogram) };
+      const detail = await ctx.insights.roleDetail(input.countryId, input.roleId, input.percent);
+      const roundEarner = <E extends { differenceFromMedian: number }>(e: E) => ({
+        ...e,
+        differenceFromMedian: Math.round(e.differenceFromMedian),
+      });
+      return {
+        ...detail,
+        summary: roundSummary(detail.summary),
+        histogram: roundHistogram(detail.histogram),
+        bottom: detail.bottom.map(roundEarner),
+        top: detail.top.map(roundEarner),
+      };
     }),
   }),
   lookups: router({

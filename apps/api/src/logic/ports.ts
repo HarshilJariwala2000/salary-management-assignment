@@ -53,11 +53,23 @@ export interface EmployeeStore {
   update(id: number, draft: EmployeeDraft): Promise<EmployeeView | null>;
 }
 
+export interface Earner {
+  id: number;
+  fullName: string;
+  annualCtc: number;
+  joiningDate: string;
+}
+
 export interface PayGroupStore {
   /** A country's current (role, annual CTC) pairs, sorted in SQL by role, then salary, then employee id. */
   salariesByRole(countryId: number): Promise<{ roleId: number; annualCtc: number }[]>;
   /** One pay group's current salaries, sorted in SQL by salary, then employee id. */
   groupSalaries(countryId: number, roleId: number): Promise<number[]>;
+  /**
+   * The k lowest and k highest paid in one pay group, selected in SQL (D-011).
+   * Bottom: salary ascending; top: salary descending; ties by employee id ascending at both ends.
+   */
+  earners(countryId: number, roleId: number, k: number): Promise<{ bottom: Earner[]; top: Earner[] }>;
 }
 
 export interface LookupStore {

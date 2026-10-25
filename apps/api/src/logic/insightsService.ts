@@ -1,6 +1,6 @@
-import { analysePayGroup, summariseByRole, type HistogramBucket, type PaySummary } from '../domain/payStats';
+import { analysePayGroup, earnerCount, summariseByRole, type HistogramBucket, type PaySummary } from '../domain/payStats';
 import { NotFound } from './errors';
-import type { Country, Department, LookupStore, PayGroupStore } from './ports';
+import type { Country, Department, Earner, LookupStore, PayGroupStore } from './ports';
 
 export interface RoleOverview {
   role: { id: number; name: string };
@@ -14,6 +14,13 @@ export interface RoleDetail {
   department: Department;
   summary: PaySummary;
   histogram: HistogramBucket[];
+  bottom: RankedEarner[];
+  top: RankedEarner[];
+}
+
+export interface RankedEarner extends Earner {
+  /** annualCtc − median; unrounded. */
+  differenceFromMedian: number;
 }
 
 export function createInsightsService({ payGroups, lookups }: { payGroups: PayGroupStore; lookups: LookupStore }) {
@@ -32,19 +39,26 @@ export function createInsightsService({ payGroups, lookups }: { payGroups: PayGr
       return { country, roles: overview.sort((a, b) => a.role.name.localeCompare(b.role.name)) };
     },
 
-    /** One pay group's unrounded summary and histogram. */
-    async roleDetail(countryId: number, roleId: number): Promise<RoleDetail> {
+    /** One pay group's unrounded summary, histogram, and bottom and top x% earners. */
+    async roleDetail(countryId: number, roleId: number, percent: number): Promise<RoleDetail> {
       const { countries, roles } = await lookups.all();
       const country = countries.find((c) => c.id === countryId);
       const role = roles.find((r) => r.id === roleId);
       const salaries = country && role ? await payGroups.groupSalaries(countryId, roleId) : [];
       if (!country || !role || salaries.length === 0) throw new NotFound('payGroup');
 
+      const { summary, histogram } = analysePayGroup(salaries);
+      const { bottom, top } = await payGroups.earners(countryId, roleId, earnerCount(summary.headcount, percent));
+      const rank = (e: Earner): RankedEarner => ({ ...e, differenceFromMedian: e.annualCtc - summary.median });
+
       return {
         country,
         role: { id: role.id, name: role.name },
         department: role.department,
-        ...analysePayGroup(salaries),
+        summary,
+        histogram,
+        bottom: bottom.map(rank),
+        top: top.map(rank),
       };
     },
   };
