@@ -55,4 +55,21 @@ describe('migrated schema', () => {
 
     await expect(insertEmployee({ fullName })).rejects.toThrow(/CHECK constraint failed/);
   });
+
+  it('allows one current assignment alongside closed ones, but rejects a second current one', async () => {
+    const { insertEmployee, insertAssignment } = await migratedDatabase();
+    const employeeId = await insertEmployee();
+    await insertAssignment(employeeId, { effectiveFrom: '2024-01-15', effectiveTo: '2025-01-01' });
+    await insertAssignment(employeeId, { effectiveFrom: '2025-01-01' });
+
+    await expect(insertAssignment(employeeId, { effectiveFrom: '2025-06-01' })).rejects.toThrow(/UNIQUE constraint failed/);
+  });
+
+  it('rejects two assignments for the same employee starting on the same date', async () => {
+    const { insertEmployee, insertAssignment } = await migratedDatabase();
+    const employeeId = await insertEmployee();
+    await insertAssignment(employeeId, { effectiveFrom: '2024-01-15', effectiveTo: '2025-01-01' });
+
+    await expect(insertAssignment(employeeId, { effectiveFrom: '2024-01-15' })).rejects.toThrow(/UNIQUE constraint failed/);
+  });
 });
