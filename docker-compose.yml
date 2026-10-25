@@ -1,0 +1,12 @@
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    volumes:
+      # Named volume, so the database (and HR's edits) survive container restarts and rebuilds.
+      - salary-data:/data
+    restart: unless-stopped
+
+volumes:
+  salary-data:
