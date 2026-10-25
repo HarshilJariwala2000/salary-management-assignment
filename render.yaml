@@ -1,0 +1,16 @@
+# Render Blueprint: the public deployment (D-017).
+services:
+  - type: web
+    name: salary-management
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    # Deploy only after the GitHub Actions check passes on that commit.
+    autoDeployTrigger: checksPass
+    envVars:
+      # The free plan has no persistent disk, so this file lives in the container.
+      # It is empty after a restart or redeploy, and boot reseeds it (design §5).
+      - key: DATABASE_PATH
+        value: /data/salary.db

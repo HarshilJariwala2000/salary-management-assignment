@@ -6,7 +6,8 @@
 
 **Status:** ready-for-human
 
-- [ ] Choose a host that supports a persistent volume (e.g. Fly.io or Railway) and set up the account
-- [ ] Deploy the image with a volume mounted at the database path
-- [ ] Verify by hand: the public URL loads with seeded data; an edit survives a redeploy or restart
+- [x] Choose a host: Render free plan via `render.yaml`. No free host offers a persistent volume, so edits reset on restart (D-017)
+- [ ] Create the Render account and apply the Blueprint from the GitHub repo
+- [ ] Deploy the image (no volume on the free plan; boot reseeds the empty database)
+- [ ] Verify by hand: the public URL loads with seeded data; `/health` is ok. (Edits surviving a restart is out of reach on the free plan, see D-017)
 - [ ] Add the public URL to the README

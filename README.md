@@ -2,7 +2,7 @@
 
 A web app that lets ACME's HR manager keep salary data for 10,000 employees across six countries accurate, and answer "how do we pay people?" in seconds instead of spreadsheet hours.
 
-**Live:** _to be added after deployment (ticket 12)_
+**Live:** _URL to be added once the Render service is created (ticket 12)_. Hosted on Render's free plan: the first visit after 15 idle minutes takes up to a minute, and edits reset to the seeded data on each restart ([D-017](docs/decisions.md)).
 
 ## What HR can do
 
@@ -71,6 +71,6 @@ docs/            requirements, design, decisions, architecture, AI workflow
 | [Clarifications](docs/clarifications.md) | Questions put to the assessment team, and the answers |
 | [Architecture](docs/architecture.md) | Diagrams, data model, a request end to end, and **measured performance** |
 | [Design](docs/design.md) | Schema, layers, module interfaces, test seams, how a switch to Postgres would work |
-| [Decisions](docs/decisions.md) | D-001 to D-016: each choice, the alternatives, and the trade-offs |
+| [Decisions](docs/decisions.md) | D-001 to D-017: each choice, the alternatives, and the trade-offs |
 | [AI workflow](docs/ai-workflow.md) | How AI was used, where I overrode it, and the mistakes it made |
 | [Spec](.scratch/salary-management/spec.md) and [tickets](.scratch/salary-management/issues/) | The user stories, and the slices the build followed |

@@ -166,3 +166,13 @@ Each entry records the context, the decision, the alternatives considered, and t
   - It is presentation of calculated results, not selection of data. Which employees are counted and which pay group they belong to is still decided in SQL.
   - The alternative, sorting in TypeScript on the server, would add a sort parameter and a round trip for no gain.
 - **Consequences:** the employee list (thousands of rows, paginated) still sorts in SQL. Any future view that sorts calculated figures across many rows should revisit this.
+
+## D-017 Public hosting on Render's free plan, without a persistent disk
+
+- **Context:** the brief asks for deployed software. Free container hosts in 2026 either have no standing free tier (Fly.io, Railway beyond a trial) or no free persistent volumes (Render, Koyeb).
+- **Decision:** deploy the existing Docker image to a Render free web service, defined in `render.yaml`. It deploys from `main` only after CI passes.
+- **Trade-offs:**
+  - The SQLite file is not on a disk, so edits are lost when the service restarts, sleeps or redeploys. Boot seeds an empty database, so the app always comes up with the same 10,000 employees.
+  - The service sleeps after 15 idle minutes; the first request after that takes up to a minute.
+  - A paid plan with a disk mounted at `/data` would keep edits with no code change.
+- **Consequences:** fine for a review demo. A real deployment would need a disk (or Postgres, per D-012) along with the SSO noted in D-005.
