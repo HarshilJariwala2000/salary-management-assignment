@@ -1,3 +1,5 @@
+import type { EmployeeListQuery } from '@salary/shared';
+
 export interface Country {
   id: number;
   name: string;
@@ -20,6 +22,27 @@ export interface Lookups {
   countries: Country[];
   departments: Department[];
   roles: Role[];
+}
+
+export interface EmployeeView {
+  id: number;
+  fullName: string;
+  email: string;
+  joiningDate: string;
+  annualCtc: number;
+  country: { id: number; name: string; isoCode: string; currencyCode: string };
+  role: { id: number; name: string };
+  department: { id: number; name: string };
+}
+
+export interface Page<T> {
+  rows: T[];
+  total: number;
+}
+
+export interface EmployeeStore {
+  /** Filtering, sorting and pagination all happen in SQL; ORDER BY always ends with employee id. */
+  list(query: EmployeeListQuery): Promise<Page<EmployeeView>>;
 }
 
 export interface LookupStore {

@@ -1,7 +1,9 @@
 import { initTRPC } from '@trpc/server';
+import type { EmployeeService } from '../../logic/employeeService';
 import type { LookupService } from '../../logic/lookupService';
 
 export interface Context {
+  employees: EmployeeService;
   lookups: LookupService;
 }
 
