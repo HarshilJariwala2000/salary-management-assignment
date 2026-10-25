@@ -18,5 +18,5 @@
 - `docs/ai-workflow.md` is written in the developer's voice from this session's record, for the developer to review and edit.
 - Still for a human:
   - [ ] README: add the live URL once ticket 12 deploys
-  - [ ] Look at the role-detail chart in a real browser (never seen rendered; jsdom can't lay out Recharts)
+  - [x] Look at the role-detail chart in a real browser (seen in Chrome; see ticket 08)
   - [ ] Review `docs/ai-workflow.md` and edit it to match your own account

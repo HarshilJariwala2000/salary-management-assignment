@@ -20,6 +20,6 @@
 
 ## Comments
 
-- The bar chart is decorative (`aria-hidden`): Recharts cannot lay out in jsdom, and the same buckets are in a captioned "Salary distribution" table that screen readers and the page tests read. The chart was checked to build, not seen rendered; ticket 13's walkthrough should eyeball it.
+- The bar chart is decorative (`aria-hidden`): Recharts cannot lay out in jsdom, and the same buckets are in a captioned "Salary distribution" table that screen readers and the page tests read. Later seen rendered in Chrome against the production bundle (Account Executive in Brazil): ten bars matching the table's counts, with the median line in the bucket that holds the median.
 - The median is marked on the bucket that contains it.
 - The not-found guard for an empty or unknown pay group passed on first run (the role-detail step delivered it).

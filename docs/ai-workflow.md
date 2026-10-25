@@ -1,6 +1,6 @@
 # How I used AI on this project
 
-I built this with **Claude Code** (Claude Opus 5.5) in the terminal, using Matt Pocock's engineering skills for the process. The AI wrote most of the text and code. I made the decisions, and in several places I overrode its recommendation. This page records how the work flowed, where I changed course, and what went wrong.
+I built this with **Claude Code** (Claude Opus 5.5) in the terminal, using Matt Pocock's engineering skills for the process. The AI wrote most of the text and code, and I can walk through any of it. I made the decisions, and in several places I overrode its recommendation. This page records how the work flowed, where I changed course, and what went wrong.
 
 ## The workflow
 
@@ -13,7 +13,11 @@ I built this with **Claude Code** (Claude Opus 5.5) in the terminal, using Matt 
 | 5. Spec | `/to-spec`, after agreeing the test seams | `.scratch/salary-management/spec.md` |
 | 6. Tickets | `/to-tickets`: 13 vertical slices with blocking edges, which I corrected | `.scratch/salary-management/issues/` |
 | 7. Low-level design | `codebase-design` "design it twice": three rounds (schema, `payStats`, layering). Each ran **three sub-agents in parallel** under opposite constraints (minimal / flexible / caller-first, then ports-and-adapters). I chose in each round | [design.md](design.md), [decisions.md](decisions.md) |
-| 8. Build | `/tdd`: seams agreed per ticket, then **red → green commit pairs**, one behaviour at a time | 62 red and 61 green commits across 168 |
+| 8. Build | `/tdd`: seams agreed per ticket, then **red → green commit pairs**, one behaviour at a time | 63 red and 62 green commits; [why one red has no green](#one-red-without-a-green) |
+
+### One red without a green
+
+The red commit `a5aa7f7` (salary sort rejected without a country) has no `(green)` partner. Its green change belonged in `packages/shared/src/employees.ts`, which is the file found untracked in mistake 1 below. The fix-forward commit `ce2c11c` added that file, and the pending green change came with it. Its message says so. Every red test does pass in the commit that follows it. That one green just carries a `fix:` label.
 
 ## Where I overrode or redirected the AI
 
@@ -22,7 +26,6 @@ I built this with **Claude Code** (Claude Opus 5.5) in the terminal, using Matt 
 | API style | Fastify with plain Zod-validated routes | **tRPC** on Fastify | Types are checked end to end, with no hand-written client (D-003) |
 | ORM | Drizzle | **TypeORM**, which I've used for four years | Every column declares its type explicitly, because esbuild doesn't emit decorator metadata (D-002) |
 | Decision records | An `adr/` folder | Decisions recorded alongside the requirements | Claude pointed out that would break the one-page rule, so we settled on one `decisions.md` |
-| CI | GitHub Actions for tests | **No CI** for now | Left out of scope |
 | Test seam for the maths | Test `payStats` only through the router | **`payStats` as its own seam** | Fast, precise maths tests, at the cost of a stable interface (D-007) |
 | First build step | Start ticketing straight from the spec | **Design the schema and module interfaces first**, with me deciding each round | Three design rounds before any code |
 | Schema | Minimal design plus a department table | **Dated `assignment` rows** (history-ready), **without** the view or a currency table | Salary history becomes a code change, not a migration (D-010) |
@@ -40,7 +43,7 @@ I also accepted Claude's interviewer-view suggestion to keep the original brief 
 
 The test-first loop and some deliberate checks caught most of these before they shipped.
 
-1. **The shared schemas went uncommitted for three tickets.** The script driving each red → green cycle only staged `apps/`, so `packages/shared/src/employees.ts` stayed untracked. My machine always passed; a fresh clone would not. It surfaced when a commit failed. It was fixed forward in one commit that says what happened. Since then, every push is preceded by a fresh-clone `npm run check`.
+1. **The shared schemas went uncommitted for three tickets.** The script driving each red → green cycle only staged `apps/`, so `packages/shared/src/employees.ts` stayed untracked. My machine always passed; a fresh clone would not. It surfaced when a commit failed. It was fixed forward in one commit that says what happened. Since then, every push is preceded by a fresh-clone `npm run check`, and a GitHub Actions workflow now runs the same check on a clean machine for every push.
 2. **A broken CHECK in the design.** The design said `date(x) = x`. The red test showed `date()` returns NULL for non-ISO text, and a NULL CHECK result *passes*. Fixed with `date(x) IS x`, and the docs were corrected.
 3. **A false promise in the requirements.** "The lists never overlap" wasn't true once counts were rounded up. Caught before ticket 09's first test; the rule and every document were fixed first.
 4. **Seed names with titles.** Faker's `fullName()` adds "Ms." and "IV", which leaked into emails. A seed test caught it.
@@ -55,16 +58,17 @@ The test-first loop and some deliberate checks caught most of these before they 
 
 - **Red is enforced.** The cycle script aborts if a new test passes before any implementation. Tests that passed on their first run are committed separately and labelled as guards, never dressed up as red → green.
 - **Expected values come from outside the code.** Statistics are worked out by hand, and currency formats come from real `Intl` output. There are no assertions that recompute the answer the way the code does.
-- **Verified, not assumed.** Fresh-clone checks before pushing, timings measured on a 10k database (and one query plan improved because of it), and the production bundle run against production-only dependencies.
-- **Unverified things are labelled as such.** The Docker image hasn't been run, and the chart hasn't been viewed in a browser. Both are recorded in the tickets instead of being claimed.
+- **Verified, not assumed.** Fresh-clone checks before pushing, CI on every push, timings measured on a 10k database (and one query plan improved because of it), and the production bundle run against production-only dependencies.
+- **Run for real, not only tested.** `docker compose up --build` was run: the container reports healthy, runs as `node` rather than root, and keeps an edit across `docker compose restart` without seeding again. The role-detail chart, which jsdom can't lay out, was checked in Chrome against the production bundle, and its bars match the table.
 
 ## Example prompts I gave
 
-- `/grill-me @project-brief.md`, then answers like "Q1 Node + TypeScript, rest yes" and "Q5. Can we use trpc?"
-- "Shouldn't the 1st step be database schema design and LLD design using … codebase-design?"
-- "I would like to be the human in the loop for doing db schema and lld of this. use design it twice skill for it."
-- "All of the sorting and filtering should be done in SQL query."
-- "Also … keep in mind to decouple db from service or logic layer so we can easily swap to postgres later"
-- "I would like to go with option 2" (`payStats` as its own seam)
-- "Think as if you are interviewer" (about whether to commit the brief)
-- "push and start 04" (each ticket was reviewed before I let it be pushed)
+Each of these changed the plan rather than approving it.
+
+- "Shouldn't the 1st step be database schema design and LLD design using … codebase-design?" Claude wanted to go straight from spec to tickets. I wanted the schema and module boundaries settled before any ticket depended on them.
+- "I would like to be the human in the loop for doing db schema and lld of this. use design it twice skill for it." I made each of the three design rounds a decision for me, not for the AI.
+- "Q5. Can we use trpc?" Claude proposed plain Zod routes. tRPC gives types that are checked from the API's procedures through to the React page, with no hand-written client (D-003).
+- "All of the sorting and filtering should be done in SQL query." This moved sorting out of `payStats`, so the maths became pure functions over already-sorted input (D-011).
+- "Also … keep in mind to decouple db from service or logic layer so we can easily swap to postgres later". This overrode Claude's "one adapter is a hypothetical seam" and led to ports and adapters, enforced by lint (D-012).
+- "I would like to go with option 2". I chose `payStats` as its own test seam over Claude's router-only option, trading a stable interface for fast, precise maths tests (D-007).
+- "Think as if you are interviewer". I asked Claude to judge whether the original brief belonged in a public repo. It didn't, so the clarifications were recorded in my own words.
