@@ -9,10 +9,11 @@ export function createPayGroupStore(dataSource: DataSource): PayGroupStore {
         .select('a.roleId', 'roleId')
         .addSelect('a.annualCtc', 'annualCtc')
         .where('a.countryId = :countryId', { countryId })
-        // Served by ix_assignment_pay_group in index order.
+        // Served by ix_assignment_pay_group in index order. a.employeeId (not e.id) is the index's
+        // last column, so SQLite needs no extra sort step for the tie-break.
         .orderBy('a.roleId', 'ASC')
         .addOrderBy('a.annualCtc', 'ASC')
-        .addOrderBy('e.id', 'ASC')
+        .addOrderBy('a.employeeId', 'ASC')
         .getRawMany<{ roleId: number; annualCtc: number }>();
       return rows.map((r) => ({ roleId: Number(r.roleId), annualCtc: Number(r.annualCtc) }));
     },
@@ -22,7 +23,7 @@ export function createPayGroupStore(dataSource: DataSource): PayGroupStore {
         .select('a.annualCtc', 'annualCtc')
         .where('a.countryId = :countryId AND a.roleId = :roleId', { countryId, roleId })
         .orderBy('a.annualCtc', 'ASC')
-        .addOrderBy('e.id', 'ASC')
+        .addOrderBy('a.employeeId', 'ASC')
         .getRawMany<{ annualCtc: number }>();
       return rows.map((r) => Number(r.annualCtc));
     },
@@ -37,7 +38,7 @@ export function createPayGroupStore(dataSource: DataSource): PayGroupStore {
           .where('a.countryId = :countryId AND a.roleId = :roleId', { countryId, roleId })
           .orderBy('a.annualCtc', direction)
           // Ties by id ascending at both ends: never simply reverse the bottom list.
-          .addOrderBy('e.id', 'ASC')
+          .addOrderBy('a.employeeId', 'ASC')
           .limit(k)
           .getRawMany<Earner>();
       const [bottom, top] = await Promise.all([end('ASC'), end('DESC')]);
