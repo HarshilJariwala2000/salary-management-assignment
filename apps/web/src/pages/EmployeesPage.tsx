@@ -141,7 +141,11 @@ export function EmployeesPage() {
       </Group>
       <AddEmployeeDrawer opened={addOpened} onClose={addDrawer.close} />
       <EditEmployeeDrawer employeeId={editingId} onClose={() => setEditingId(null)} />
-      {employees.data ? (
+      {employees.data?.total === 0 ? (
+        <Text c="dimmed" ta="center" py="xl">
+          No employees match your search or filters
+        </Text>
+      ) : employees.data ? (
         <Table.ScrollContainer minWidth={900}>
           <Table striped highlightOnHover>
             <Table.Thead>
