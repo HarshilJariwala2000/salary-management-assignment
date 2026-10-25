@@ -37,16 +37,16 @@ export function createEmployeeStore(dataSource: DataSource): EmployeeStore {
     async create(draft) {
       try {
         return await dataSource.transaction(async (tx) => {
-        const [{ id }] = await tx.query(
-          'INSERT INTO employee (full_name, email, joining_date) VALUES (?, ?, ?) RETURNING id',
-          [draft.fullName, draft.email, draft.joiningDate],
-        );
-        await tx.query(
-          `INSERT INTO assignment (employee_id, country_id, role_id, annual_ctc, effective_from)
-           VALUES (?, ?, ?, ?, ?)`,
-          [id, draft.countryId, draft.roleId, draft.annualCtc, draft.joiningDate],
-        );
-        return (await findEmployee(tx, id))!;
+          const [{ id }] = await tx.query(
+            'INSERT INTO employee (full_name, email, joining_date) VALUES (?, ?, ?) RETURNING id',
+            [draft.fullName, draft.email, draft.joiningDate],
+          );
+          await tx.query(
+            `INSERT INTO assignment (employee_id, country_id, role_id, annual_ctc, effective_from)
+             VALUES (?, ?, ?, ?, ?)`,
+            [id, draft.countryId, draft.roleId, draft.annualCtc, draft.joiningDate],
+          );
+          return (await findEmployee(tx, id))!;
         });
       } catch (error) {
         throw translateDatabaseError(error);
