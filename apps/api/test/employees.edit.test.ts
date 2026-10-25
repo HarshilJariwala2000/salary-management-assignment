@@ -57,4 +57,17 @@ describe('employees.update', () => {
       code: 'NOT_FOUND',
     });
   });
+
+  it('lets an employee keep their own email, but not take another employee’s', async () => {
+    const { caller } = await makeCaller();
+    const asha = await caller.employees.create(await newEmployee(caller, { email: 'asha.rao@acme.test' }));
+    await caller.employees.create(await newEmployee(caller, { fullName: 'Ben Carter', email: 'ben.carter@acme.test' }));
+
+    await expect(
+      caller.employees.update({ id: asha.id, ...(await newEmployee(caller, { email: 'asha.rao@acme.test', annualCtc: 1_300_000 })) }),
+    ).resolves.toMatchObject({ annualCtc: 1_300_000 });
+    await expect(
+      caller.employees.update({ id: asha.id, ...(await newEmployee(caller, { email: 'BEN.CARTER@acme.test' })) }),
+    ).rejects.toMatchObject({ code: 'CONFLICT', cause: { field: 'email' } });
+  });
 });
