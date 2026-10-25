@@ -1,10 +1,12 @@
 import { initTRPC, TRPCError } from '@trpc/server';
 import type { EmployeeService } from '../../logic/employeeService';
 import { DomainError } from '../../logic/errors';
+import type { InsightsService } from '../../logic/insightsService';
 import type { LookupService } from '../../logic/lookupService';
 
 export interface Context {
   employees: EmployeeService;
+  insights: InsightsService;
   lookups: LookupService;
 }
 

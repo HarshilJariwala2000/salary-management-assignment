@@ -53,6 +53,11 @@ export interface EmployeeStore {
   update(id: number, draft: EmployeeDraft): Promise<EmployeeView | null>;
 }
 
+export interface PayGroupStore {
+  /** A country's current (role, annual CTC) pairs, sorted in SQL by role, then salary, then employee id. */
+  salariesByRole(countryId: number): Promise<{ roleId: number; annualCtc: number }[]>;
+}
+
 export interface LookupStore {
   all(): Promise<Lookups>;
   countryExists(id: number): Promise<boolean>;
