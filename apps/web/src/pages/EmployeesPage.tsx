@@ -4,6 +4,7 @@ import { useDebouncedValue, useDisclosure } from '@mantine/hooks';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { DEFAULT_PAGE_SIZE, PAGE_SIZES } from '@salary/shared';
 import { AddEmployeeDrawer } from '../employees/AddEmployeeDrawer';
+import { DeleteEmployeeModal } from '../employees/DeleteEmployeeModal';
 import { EditEmployeeDrawer } from '../employees/EditEmployeeDrawer';
 import { formatDate, formatMoney } from '../format';
 import { useTRPC } from '../trpc';
@@ -56,6 +57,7 @@ export function EmployeesPage() {
   const trpc = useTRPC();
   const [addOpened, addDrawer] = useDisclosure(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [deleting, setDeleting] = useState<{ id: number; fullName: string } | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<(typeof PAGE_SIZES)[number]>(DEFAULT_PAGE_SIZE);
   const [search, setSearch] = useState('');
@@ -141,6 +143,7 @@ export function EmployeesPage() {
       </Group>
       <AddEmployeeDrawer opened={addOpened} onClose={addDrawer.close} />
       <EditEmployeeDrawer employeeId={editingId} onClose={() => setEditingId(null)} />
+      <DeleteEmployeeModal employee={deleting} onClose={() => setDeleting(null)} />
       {employees.data?.total === 0 ? (
         <Text c="dimmed" ta="center" py="xl">
           No employees match your search or filters
@@ -171,9 +174,19 @@ export function EmployeesPage() {
                   <Table.Td>{formatDate(e.joiningDate)}</Table.Td>
                   <Table.Td ta="right">{formatMoney(e.annualCtc, e.country.currencyCode)}</Table.Td>
                   <Table.Td>
-                    <ActionIcon variant="subtle" aria-label={`Edit ${e.fullName}`} onClick={() => setEditingId(e.id)}>
-                      ✎
-                    </ActionIcon>
+                    <Group gap={4} wrap="nowrap">
+                      <ActionIcon variant="subtle" aria-label={`Edit ${e.fullName}`} onClick={() => setEditingId(e.id)}>
+                        ✎
+                      </ActionIcon>
+                      <ActionIcon
+                        variant="subtle"
+                        color="red"
+                        aria-label={`Delete ${e.fullName}`}
+                        onClick={() => setDeleting({ id: e.id, fullName: e.fullName })}
+                      >
+                        ✕
+                      </ActionIcon>
+                    </Group>
                   </Table.Td>
                 </Table.Tr>
               ))}
