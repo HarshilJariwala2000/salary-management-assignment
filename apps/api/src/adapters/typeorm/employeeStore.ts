@@ -20,9 +20,15 @@ interface EmployeeRow {
   departmentName: string;
 }
 
+const sortColumns = {
+  name: 'e.fullName',
+  joiningDate: 'e.joiningDate',
+  annualCtc: 'a.annualCtc',
+} as const;
+
 export function createEmployeeStore(dataSource: DataSource): EmployeeStore {
   return {
-    async list({ search, countryId, roleId, departmentId, page, pageSize }) {
+    async list({ search, countryId, roleId, departmentId, sortBy, sortDirection, page, pageSize }) {
       const query = currentAssignments(dataSource);
       if (search) {
         // lower(...) LIKE works the same on SQLite and Postgres; emails are stored lower-cased.
@@ -34,7 +40,8 @@ export function createEmployeeStore(dataSource: DataSource): EmployeeStore {
       if (roleId) query.andWhere('a.roleId = :roleId', { roleId });
       if (departmentId) query.andWhere('r.departmentId = :departmentId', { departmentId });
       const rows = await selectEmployeeView(query.clone())
-        .orderBy('e.fullName', 'ASC')
+        .orderBy(sortColumns[sortBy], sortDirection === 'asc' ? 'ASC' : 'DESC')
+        // Ties always break by id, so pages and rankings never shuffle between requests.
         .addOrderBy('e.id', 'ASC')
         .offset((page - 1) * pageSize)
         .limit(pageSize)
