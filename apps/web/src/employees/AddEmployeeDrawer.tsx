@@ -1,9 +1,9 @@
 import { Drawer } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { TRPCClientError } from '@trpc/client';
 import { useTRPC } from '../trpc';
 import { EmployeeForm, type SubmitProblem } from './EmployeeForm';
+import { toSubmitProblem } from './submitProblem';
 
 export function AddEmployeeDrawer({ opened, onClose }: { opened: boolean; onClose: () => void }) {
   const trpc = useTRPC();
@@ -28,11 +28,3 @@ export function AddEmployeeDrawer({ opened, onClose }: { opened: boolean; onClos
   );
 }
 
-/** A domain error names its field (set by the API's errorFormatter); anything else is a general failure. */
-function toSubmitProblem(error: unknown): SubmitProblem {
-  if (error instanceof TRPCClientError) {
-    const field = (error.data as { field?: string } | undefined)?.field;
-    return { field, message: error.message };
-  }
-  return { message: 'Something went wrong' };
-}
