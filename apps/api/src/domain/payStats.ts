@@ -24,6 +24,26 @@ export function analysePayGroup(sortedSalaries: readonly number[]): { summary: P
 }
 
 /**
+ * One summary per role, given a country's (role, annual CTC) rows sorted by role and then
+ * salary. Consecutive rows with the same role form one pay group.
+ */
+export function summariseByRole(
+  rows: readonly { roleId: number; annualCtc: number }[],
+): { roleId: number; summary: PaySummary }[] {
+  const groups: { roleId: number; salaries: number[] }[] = [];
+  for (const { roleId, annualCtc } of rows) {
+    const current = groups.at(-1);
+    if (current?.roleId === roleId) {
+      current.salaries.push(annualCtc);
+    } else {
+      if (current && roleId < current.roleId) throw new RangeError('Rows must be sorted by role');
+      groups.push({ roleId, salaries: [annualCtc] });
+    }
+  }
+  return groups.map(({ roleId, salaries }) => ({ roleId, summary: analysePayGroup(salaries).summary }));
+}
+
+/**
  * Sorting is the database's job; this checks it in one pass rather than trusting it,
  * so a missing ORDER BY fails loudly instead of producing a wrong median.
  */
