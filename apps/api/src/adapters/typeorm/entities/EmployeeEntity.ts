@@ -1,6 +1,7 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Check, Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity('employee')
+@Check('ck_employee_joining_date', 'date(joining_date) IS joining_date')
 export class EmployeeEntity {
   @PrimaryGeneratedColumn({ type: 'integer' })
   id!: number;

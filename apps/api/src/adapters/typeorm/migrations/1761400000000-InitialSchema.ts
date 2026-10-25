@@ -29,7 +29,8 @@ export class InitialSchema1761400000000 implements MigrationInterface {
         id           INTEGER PRIMARY KEY AUTOINCREMENT,
         full_name    TEXT NOT NULL,
         email        TEXT NOT NULL,
-        joining_date TEXT NOT NULL
+        joining_date TEXT NOT NULL,
+        CONSTRAINT ck_employee_joining_date CHECK (date(joining_date) IS joining_date)
       )`);
     await q.query(`
       CREATE TABLE assignment (
@@ -40,7 +41,11 @@ export class InitialSchema1761400000000 implements MigrationInterface {
         annual_ctc     INTEGER NOT NULL,
         effective_from TEXT NOT NULL,
         effective_to   TEXT,
-        CONSTRAINT ck_assignment_annual_ctc CHECK (typeof(annual_ctc) = 'integer' AND annual_ctc > 0)
+        CONSTRAINT ck_assignment_annual_ctc     CHECK (typeof(annual_ctc) = 'integer' AND annual_ctc > 0),
+        CONSTRAINT ck_assignment_effective_from CHECK (date(effective_from) IS effective_from),
+        CONSTRAINT ck_assignment_effective_to   CHECK (
+          effective_to IS NULL OR (date(effective_to) IS effective_to AND effective_to > effective_from)
+        )
       )`);
   }
 
