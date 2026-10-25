@@ -1,7 +1,8 @@
-import { Button, Card, Group, Loader, SimpleGrid, Stack, Table, Text, Title } from '@mantine/core';
+import { useState } from 'react';
+import { Button, Card, Group, Loader, NumberInput, SimpleGrid, Stack, Table, Text, Title } from '@mantine/core';
 import { BarChart } from '@mantine/charts';
-import { useQuery } from '@tanstack/react-query';
-import { formatMoney } from '../format';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { formatDate, formatDifference, formatMoney } from '../format';
 import { useTRPC } from '../trpc';
 
 /** One pay group: its summary, salary distribution (with the median marked) and a way back. */
@@ -17,7 +18,11 @@ export function RoleDetailView({
   onBack: () => void;
 }) {
   const trpc = useTRPC();
-  const detail = useQuery(trpc.insights.roleDetail.queryOptions({ countryId, roleId }));
+  const [percent, setPercent] = useState(10);
+  const detail = useQuery({
+    ...trpc.insights.roleDetail.queryOptions({ countryId, roleId, percent }),
+    placeholderData: keepPreviousData,
+  });
 
   const back = (
     <Button variant="subtle" onClick={onBack} w="fit-content">
@@ -34,7 +39,7 @@ export function RoleDetailView({
   }
   if (!detail.data) return <Stack>{back}<Loader /></Stack>;
 
-  const { role, department, country, summary, histogram } = detail.data;
+  const { role, department, country, summary, histogram, bottom, top } = detail.data;
   const money = (amount: number) => formatMoney(amount, country.currencyCode);
   const buckets = histogram.map((b) => ({ ...b, range: `${money(b.lower)} – ${money(b.upper)}` }));
   const medianBucket = buckets.find((b, i) => summary.median < b.upper || i === buckets.length - 1)!;
@@ -75,6 +80,20 @@ export function RoleDetailView({
           tickLine="y"
         />
       </div>
+      <NumberInput
+        label="Top and bottom %"
+        description="How much of the role to list at each end"
+        value={percent}
+        onChange={(value) => typeof value === 'number' && setPercent(value)}
+        min={1}
+        max={50}
+        allowDecimal={false}
+        w={220}
+      />
+      <SimpleGrid cols={{ base: 1, md: 2 }}>
+        <EarnerTable caption={`Top ${percent}% earners`} earners={top} currencyCode={country.currencyCode} />
+        <EarnerTable caption={`Bottom ${percent}% earners`} earners={bottom} currencyCode={country.currencyCode} />
+      </SimpleGrid>
       <Table striped>
         <Table.Caption>Salary distribution</Table.Caption>
         <Table.Thead>
@@ -93,5 +112,39 @@ export function RoleDetailView({
         </Table.Tbody>
       </Table>
     </Stack>
+  );
+}
+
+function EarnerTable({
+  caption,
+  earners,
+  currencyCode,
+}: {
+  caption: string;
+  earners: { id: number; fullName: string; annualCtc: number; joiningDate: string; differenceFromMedian: number }[];
+  currencyCode: string;
+}) {
+  return (
+    <Table striped>
+      <Table.Caption>{caption}</Table.Caption>
+      <Table.Thead>
+        <Table.Tr>
+          <Table.Th>Name</Table.Th>
+          <Table.Th ta="right">Annual CTC</Table.Th>
+          <Table.Th ta="right">vs median</Table.Th>
+          <Table.Th>Joined</Table.Th>
+        </Table.Tr>
+      </Table.Thead>
+      <Table.Tbody>
+        {earners.map((e) => (
+          <Table.Tr key={e.id}>
+            <Table.Td>{e.fullName}</Table.Td>
+            <Table.Td ta="right">{formatMoney(e.annualCtc, currencyCode)}</Table.Td>
+            <Table.Td ta="right">{formatDifference(e.differenceFromMedian, currencyCode)}</Table.Td>
+            <Table.Td>{formatDate(e.joiningDate)}</Table.Td>
+          </Table.Tr>
+        ))}
+      </Table.Tbody>
+    </Table>
   );
 }

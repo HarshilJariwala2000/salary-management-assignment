@@ -16,3 +16,9 @@ const dateFormat = new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'sh
 export function formatDate(isoDate: string): string {
   return dateFormat.format(new Date(`${isoDate}T00:00:00Z`));
 }
+
+/** A signed difference such as +₹50,000 or −₹50,000 (a true minus sign). */
+export function formatDifference(amount: number, currencyCode: string): string {
+  if (amount === 0) return formatMoney(0, currencyCode);
+  return `${amount > 0 ? '+' : '−'}${formatMoney(Math.abs(amount), currencyCode)}`;
+}
