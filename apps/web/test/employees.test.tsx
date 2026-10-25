@@ -51,4 +51,21 @@ describe('Employees page', () => {
 
     await waitFor(() => expect(lastListInput(calls)).toMatchObject({ search: 'rao', page: 1 }));
   });
+
+  it('filters by country, role and department, starting again from page 1', async () => {
+    const user = userEvent.setup();
+    const { calls } = renderApp({ 'lookups.all': lookups, 'employees.list': { total: 45, rows: [employeeRow()] } });
+    await screen.findByRole('option', { name: 'India' });
+    await user.click(screen.getByRole('button', { name: '2' }));
+
+    await user.selectOptions(screen.getByLabelText('Filter by country'), 'India');
+    await waitFor(() => expect(lastListInput(calls)).toMatchObject({ countryId: 1, page: 1 }));
+    await user.selectOptions(screen.getByLabelText('Filter by role'), 'Recruiter');
+    await waitFor(() => expect(lastListInput(calls)).toMatchObject({ countryId: 1, roleId: 15 }));
+    await user.selectOptions(screen.getByLabelText('Filter by department'), 'People');
+    await waitFor(() => expect(lastListInput(calls)).toMatchObject({ countryId: 1, roleId: 15, departmentId: 5 }));
+
+    await user.selectOptions(screen.getByLabelText('Filter by country'), 'All countries');
+    await waitFor(() => expect(lastListInput(calls)).not.toHaveProperty('countryId'));
+  });
 });
