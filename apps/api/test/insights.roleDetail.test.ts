@@ -91,4 +91,15 @@ describe('insights.roleDetail', () => {
     expect(bottom).toEqual([earner('Asha Rao', 1_000_000, -750_000), earner('Ben Das', 1_000_000, -750_000)]);
     expect(top).toEqual([earner('Fay Pillai', 2_500_000, 750_000), earner('Dev Shah', 2_000_000, 250_000)]);
   });
+
+  it('rounds differences from the median symmetrically, half away from zero', async () => {
+    const { caller, dataSource } = await makeCaller();
+    await given(dataSource, [employee({ fullName: 'Asha Rao', annualCtc: 100 }), employee({ fullName: 'Ben Das', annualCtc: 101 })]);
+
+    // Median 100.5: Asha is 0.5 below it, Ben 0.5 above.
+    const { bottom, top } = await caller.insights.roleDetail({ ...(await payGroup(caller, 'IN', 'Software Engineer')), percent: 50 });
+
+    expect(bottom.map((e) => e.differenceFromMedian)).toEqual([-1]);
+    expect(top.map((e) => e.differenceFromMedian)).toEqual([1]);
+  });
 });
