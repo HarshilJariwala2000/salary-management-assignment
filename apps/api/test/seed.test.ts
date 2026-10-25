@@ -68,4 +68,13 @@ describe('generateSeed', () => {
     expect(outliers.length).toBeGreaterThan(0);
     expect(outliers.length).toBeLessThan(employees.length * 0.03);
   });
+
+  it('uses plain first and last names, without titles or suffixes', () => {
+    const names = generateSeed({ count: 2000, seed: 9, today }).map((e) => e.fullName);
+
+    for (const name of names) {
+      expect(name).not.toMatch(/^(Mr|Mrs|Ms|Miss|Dr|Prof|Herr|Frau|Sr|Sra)\.?\s/);
+      expect(name).not.toMatch(/\s(Jr|Sr|I{2,3}|IV|V|PhD|MD|DDS|DVM)\.?$/);
+    }
+  });
 });
