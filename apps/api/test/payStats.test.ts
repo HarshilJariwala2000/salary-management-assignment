@@ -28,3 +28,15 @@ describe('analysePayGroup: summary', () => {
     expect(analysePayGroup(salaries).summary).toEqual(summary);
   });
 });
+
+describe('analysePayGroup: refuses input it cannot trust', () => {
+  it.each([
+    { name: 'an empty pay group', salaries: [] },
+    { name: 'salaries not sorted ascending (a missing ORDER BY)', salaries: [200, 100] },
+    { name: 'a salary of zero', salaries: [0, 100] },
+    { name: 'a negative salary', salaries: [-5, 100] },
+    { name: 'a fractional salary', salaries: [100, 150.5] },
+  ])('throws a RangeError for $name', ({ salaries }) => {
+    expect(() => analysePayGroup(salaries)).toThrow(RangeError);
+  });
+});
