@@ -18,7 +18,22 @@ export interface PaySummary {
 
 /** Summarises one pay group, given its annual CTCs sorted ascending. */
 export function analysePayGroup(sortedSalaries: readonly number[]): { summary: PaySummary } {
+  if (sortedSalaries.length === 0) throw new RangeError('A pay group needs at least one salary');
+  assertSortedSalaries(sortedSalaries);
   return { summary: summarise(sortedSalaries) };
+}
+
+/**
+ * Sorting is the database's job; this checks it in one pass rather than trusting it,
+ * so a missing ORDER BY fails loudly instead of producing a wrong median.
+ */
+function assertSortedSalaries(salaries: readonly number[]): void {
+  salaries.forEach((salary, i) => {
+    if (!Number.isInteger(salary) || salary <= 0) {
+      throw new RangeError(`Annual CTC must be a positive integer, got ${salary}`);
+    }
+    if (i > 0 && salary < salaries[i - 1]!) throw new RangeError('Salaries must be sorted ascending');
+  });
 }
 
 function summarise(sorted: readonly number[]): PaySummary {
