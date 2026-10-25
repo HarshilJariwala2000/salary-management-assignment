@@ -65,4 +65,30 @@ describe('insights.roleDetail', () => {
     await expect(caller.insights.roleDetail(indianRecruiters)).rejects.toMatchObject({ code: 'NOT_FOUND' });
     await expect(caller.insights.roleDetail({ ...indianRecruiters, roleId: 9999 })).rejects.toMatchObject({ code: 'NOT_FOUND' });
   });
+
+  it('lists the bottom and top x% by salary, breaking ties by employee id, with each one’s difference from the median', async () => {
+    const { caller, dataSource } = await makeCaller();
+    await given(dataSource, [
+      employee({ fullName: 'Asha Rao', annualCtc: 1_000_000 }),
+      employee({ fullName: 'Ben Das', annualCtc: 1_000_000 }),
+      employee({ fullName: 'Chen Iyer', annualCtc: 1_500_000 }),
+      employee({ fullName: 'Dev Shah', annualCtc: 2_000_000 }),
+      employee({ fullName: 'Esha Nair', annualCtc: 2_000_000 }),
+      employee({ fullName: 'Fay Pillai', annualCtc: 2_500_000 }),
+    ]);
+
+    // 6 people, 20% → 1.2 rounds up to 2 at each end. Median = (1,500,000 + 2,000,000) / 2 = 1,750,000.
+    const { bottom, top } = await caller.insights.roleDetail({ ...(await payGroup(caller, 'IN', 'Software Engineer')), percent: 20 });
+
+    const earner = (fullName: string, annualCtc: number, differenceFromMedian: number) => ({
+      id: expect.any(Number),
+      fullName,
+      annualCtc,
+      joiningDate: '2024-01-15',
+      differenceFromMedian,
+    });
+    // Ties: Asha and Ben both earn 1,000,000; Dev and Esha both 2,000,000. Lower id first, at both ends.
+    expect(bottom).toEqual([earner('Asha Rao', 1_000_000, -750_000), earner('Ben Das', 1_000_000, -750_000)]);
+    expect(top).toEqual([earner('Fay Pillai', 2_500_000, 750_000), earner('Dev Shah', 2_000_000, 250_000)]);
+  });
 });
