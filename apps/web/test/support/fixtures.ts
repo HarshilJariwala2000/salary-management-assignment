@@ -6,10 +6,17 @@ type Outputs = inferRouterOutputs<AppRouter>;
 export const lookups: Outputs['lookups']['all'] = {
   countries: [
     { id: 1, name: 'India', isoCode: 'IN', currencyCode: 'INR' },
-    { id: 2, name: 'Germany', isoCode: 'DE', currencyCode: 'EUR' },
+    { id: 2, name: 'United States', isoCode: 'US', currencyCode: 'USD' },
+    { id: 3, name: 'Germany', isoCode: 'DE', currencyCode: 'EUR' },
   ],
-  departments: [{ id: 1, name: 'Engineering' }],
-  roles: [{ id: 1, name: 'Software Engineer', department: { id: 1, name: 'Engineering' } }],
+  departments: [
+    { id: 1, name: 'Engineering' },
+    { id: 5, name: 'People' },
+  ],
+  roles: [
+    { id: 1, name: 'Software Engineer', department: { id: 1, name: 'Engineering' } },
+    { id: 15, name: 'Recruiter', department: { id: 5, name: 'People' } },
+  ],
 };
 
 type EmployeePage = Outputs['employees']['list'];
