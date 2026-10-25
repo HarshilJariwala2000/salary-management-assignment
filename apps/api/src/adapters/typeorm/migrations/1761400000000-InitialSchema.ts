@@ -53,9 +53,15 @@ export class InitialSchema1761400000000 implements MigrationInterface {
       )`);
     // At most one current assignment per employee (D-010).
     await q.query(`CREATE UNIQUE INDEX ux_assignment_current ON assignment (employee_id) WHERE effective_to IS NULL`);
+    // Serves pay-group reads in (role, salary, id) order without a sort step. Only used by
+    // queries that include effective_to IS NULL, which the current-assignment helper guarantees.
+    await q.query(`
+      CREATE INDEX ix_assignment_pay_group ON assignment (country_id, role_id, annual_ctc, employee_id)
+      WHERE effective_to IS NULL`);
   }
 
   async down(q: QueryRunner): Promise<void> {
+    await q.query(`DROP INDEX ix_assignment_pay_group`);
     await q.query(`DROP INDEX ux_assignment_current`);
     await q.query(`DROP TABLE assignment`);
     await q.query(`DROP TABLE employee`);

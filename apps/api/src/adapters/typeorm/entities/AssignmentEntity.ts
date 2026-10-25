@@ -7,6 +7,7 @@ import { RoleEntity } from './RoleEntity';
 @Entity('assignment')
 @Unique('uq_assignment_employee_start', ['employeeId', 'effectiveFrom'])
 @Index('ux_assignment_current', ['employeeId'], { unique: true, where: 'effective_to IS NULL' })
+@Index('ix_assignment_pay_group', ['countryId', 'roleId', 'annualCtc', 'employeeId'], { where: 'effective_to IS NULL' })
 @Check('ck_assignment_annual_ctc', `typeof(annual_ctc) = 'integer' AND annual_ctc > 0`)
 @Check('ck_assignment_effective_from', 'date(effective_from) IS effective_from')
 @Check(
