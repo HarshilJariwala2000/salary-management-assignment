@@ -38,7 +38,9 @@ export function createEmployeeService({
     },
 
     async update(id: number, draft: EmployeeDraft): Promise<EmployeeView> {
-      return (await employees.update(id, draft))!;
+      const employee = await employees.update(id, draft);
+      if (!employee) throw new NotFound('employee');
+      return employee;
     },
   };
 }
