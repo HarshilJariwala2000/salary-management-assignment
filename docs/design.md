@@ -1,6 +1,6 @@
 # Design: ACME Salary Management
 
-This is the low-level design: the database schema, the modules and their interfaces, and where the seams are. It was produced in three "design it twice" rounds. In each round, three alternative designs were drafted under different constraints, compared, and decided on by the developer. The reasoning behind each choice is in [decisions.md](decisions.md). The product scope is in [requirements.md](requirements.md).
+This is the low-level design: the database schema, the modules and their interfaces, and where the seams are. It was produced in three "design it twice" rounds. In each round, three alternative designs were drafted under different constraints, compared, and decided on by the developer. The reasoning behind each choice is in [decisions.md](decisions.md). The product scope is in [requirements.md](requirements.md). For a short animated walkthrough of this design, see the [video explainer](https://youtu.be/qd2rL44j20g).
 
 Vocabulary used here:
 - **Module**: anything with an interface and an implementation.

@@ -4,6 +4,8 @@ A web app that lets ACME's HR manager keep salary data for 10,000 employees acro
 
 **Live:** _URL to be added once the Render service is created (ticket 12)_. Hosted on Render's free plan: the first visit after 15 idle minutes takes up to a minute, and edits reset to the seeded data on each restart ([D-017](docs/decisions.md)).
 
+**Videos:** [app demo](https://youtu.be/NdLb1q_u61U) · [low-level design explained](https://youtu.be/qd2rL44j20g) (a short animated walkthrough)
+
 ## What HR can do
 
 - **Employees:** search by name or email; filter by country, role and department; sort by name, joining date, or salary within a country. Choose 10, 20, 50 or 100 rows per page. Add, edit and delete employees, with checks that run in the browser and again on the server.
