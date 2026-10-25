@@ -16,7 +16,7 @@
   - an unknown country → `InvalidField(countryId, unknown)`, and an unknown role → `InvalidField(roleId, unknown)`, both checked via `LookupStore`
 - [ ] `EmployeeStore.create` inserts the employee and its first assignment (effective from the joining date) in **one transaction**, and returns an `EmployeeView`
 - [ ] The adapter's error classifier turns SQLite's unique violation on `employee.email` into `DuplicateEmail`
-- [ ] The middleware maps these to BAD_REQUEST / CONFLICT, with `data.field` set
+- [ ] Add the domain-error tRPC middleware and `errorFormatter` (moved here from ticket 01): `NotFound` → NOT_FOUND, `InvalidField` → BAD_REQUEST, `DuplicateEmail` → CONFLICT, with `data.field` set; any other error → INTERNAL_SERVER_ERROR
 - [ ] The drawer shows the derived department and currency as read-only, field-level errors (including the server's `field`), and a success message
 - [ ] Router tests:
   - a valid create

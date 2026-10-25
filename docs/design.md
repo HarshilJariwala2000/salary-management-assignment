@@ -25,16 +25,16 @@ role        id PK · name TEXT UNIQUE · department_id → department (RESTRICT)
 employee    id PK
             · full_name    TEXT NOT NULL  CHECK(length(trim(full_name)) > 0)
             · email        TEXT NOT NULL  UNIQUE  CHECK(email = lower(email))
-            · joining_date TEXT NOT NULL  CHECK(date(joining_date) = joining_date)
+            · joining_date TEXT NOT NULL  CHECK(date(joining_date) IS joining_date)
 
 assignment  id PK
             · employee_id  → employee (CASCADE)
             · country_id   → country  (RESTRICT)
             · role_id      → role     (RESTRICT)
             · annual_ctc     INTEGER NOT NULL CHECK(typeof(annual_ctc) = 'integer' AND annual_ctc > 0)
-            · effective_from TEXT NOT NULL    CHECK(date(effective_from) = effective_from)
+            · effective_from TEXT NOT NULL    CHECK(date(effective_from) IS effective_from)
             · effective_to   TEXT NULL        -- NULL = the current assignment
-              CHECK(effective_to IS NULL OR (date(effective_to) = effective_to AND effective_to > effective_from))
+              CHECK(effective_to IS NULL OR (date(effective_to) IS effective_to AND effective_to > effective_from))
             · UNIQUE(employee_id, effective_from)
 
 UNIQUE INDEX ux_assignment_current   (employee_id)                                  WHERE effective_to IS NULL
@@ -55,6 +55,7 @@ INDEX        ix_assignment_pay_group (country_id, role_id, annual_ctc, employee_
   - Department comes from the role and currency from the country. Neither is ever stored on the employee or assignment.
   - The currency **symbol isn't stored**; the UI formats amounts with `Intl.NumberFormat`.
 - **The database enforces every rule it can.** The SQLite-specific CHECKs (`typeof`, `date()`) are deliberate (D-013).
+  - Date checks use `date(x) IS x`, not `=`. `date()` returns NULL for non-ISO text, `NULL = x` is NULL, and a CHECK treats NULL as passing. A schema test caught this.
   - Every CHECK and index is declared on the entities (`@Check`, `@Index({ where })`) **and** created by the committed migrations. Keeping the entities complete stops TypeORM's migration generator from proposing to drop checks.
   - `synchronize` is **never** used. Tests build their database by running the migrations (§6).
 - `PRAGMA foreign_keys = ON` is checked at startup.

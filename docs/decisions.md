@@ -128,7 +128,7 @@ Each entry records the context, the decision, the alternatives considered, and t
 ## D-013 SQLite-specific CHECKs; tests run the real migrations
 
 - **Decision:**
-  - Keep database CHECKs that only work on SQLite (`typeof(annual_ctc) = 'integer'`, `date(x) = x`), so the database enforces every rule it can.
+  - Keep database CHECKs that only work on SQLite (`typeof(annual_ctc) = 'integer'`, `date(x) IS x`), so the database enforces every rule it can. `IS` rather than `=`, because `date()` returns NULL for non-ISO text and a NULL CHECK result passes.
   - Declare them on the entities **and** in the migrations.
   - **Never use `synchronize`.** Tests build each in-memory database by running the migrations.
 - **Alternatives:**
