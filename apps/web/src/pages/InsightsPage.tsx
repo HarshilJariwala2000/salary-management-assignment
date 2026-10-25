@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Loader, NativeSelect, Stack, Table, Text, Title, UnstyledButton } from '@mantine/core';
+import { Anchor, Loader, NativeSelect, Stack, Table, Text, Title, UnstyledButton } from '@mantine/core';
 import { useQuery } from '@tanstack/react-query';
 import type { inferRouterOutputs } from '@trpc/server';
 import type { AppRouter } from '@salary/api';
 import { formatMoney } from '../format';
+import { RoleDetailView } from '../insights/RoleDetailView';
 import { useTRPC } from '../trpc';
 
 type RoleOverview = inferRouterOutputs<AppRouter>['insights']['countryOverview']['roles'][number];
@@ -12,7 +13,7 @@ interface Column {
   key: string;
   label: string;
   value: (row: RoleOverview) => string | number;
-  render: (row: RoleOverview, money: (amount: number) => string) => string;
+  render: (row: RoleOverview, money: (amount: number) => string) => React.ReactNode;
   numeric?: boolean;
 }
 
@@ -55,6 +56,7 @@ export function InsightsPage() {
   const trpc = useTRPC();
   const lookups = useQuery(trpc.lookups.all.queryOptions());
   const [countryId, setCountryId] = useState<number | null>(null);
+  const [roleId, setRoleId] = useState<number | null>(null);
   const [sort, setSort] = useState<{ key: string; direction: Direction }>({ key: 'role', direction: 'ascending' });
   const overview = useQuery({
     ...trpc.insights.countryOverview.queryOptions({ countryId: countryId ?? 0 }),
@@ -70,6 +72,18 @@ export function InsightsPage() {
   }
 
   const sortColumn = columns.find((c) => c.key === sort.key)!;
+  const country = lookups.data?.countries.find((c) => c.id === countryId);
+
+  if (countryId !== null && roleId !== null) {
+    return (
+      <RoleDetailView
+        countryId={countryId}
+        roleId={roleId}
+        countryName={country?.name ?? ''}
+        onBack={() => setRoleId(null)}
+      />
+    );
+  }
 
   return (
     <Stack>
@@ -112,7 +126,13 @@ export function InsightsPage() {
                   <Table.Tr key={row.role.id}>
                     {columns.map((column) => (
                       <Table.Td key={column.key} ta={column.numeric ? 'right' : undefined}>
-                        {column.render(row, money)}
+                        {column.key === 'role' ? (
+                          <Anchor component="button" onClick={() => setRoleId(row.role.id)}>
+                            {row.role.name}
+                          </Anchor>
+                        ) : (
+                          column.render(row, money)
+                        )}
                       </Table.Td>
                     ))}
                   </Table.Tr>
