@@ -7,7 +7,7 @@
 **Status:** ready-for-agent
 
 - [ ] npm workspaces monorepo with three parts: the API app, the web app, and a shared package (Zod schemas only, no server runtime code)
-- [ ] API layers set up as designed: transport (tRPC), logic (services, ports, domain errors), domain (`payStats` placeholder), adapter (TypeORM), and a composition root
+- [ ] API layers set up as designed: transport (tRPC), logic (services, ports), adapter (TypeORM), and a composition root. The domain folder gets its lint rule ("imports nothing") but no code yet; `payStats` arrives test-first in ticket 07
 - [ ] An ESLint `no-restricted-imports` rule stops logic, domain and transport from importing TypeORM, the driver or the adapter
 - [ ] Fastify hosts tRPC, serves the built web app, and exposes a health endpoint
 - [ ] TypeORM on `better-sqlite3`, with an explicit type on every column. Foreign keys are on and checked at startup
@@ -24,5 +24,5 @@
   - a test helper builds the app with in-memory SQLite **by running the migrations** and a fixed clock
   - one router test via `createCaller`
   - one page-level React Testing Library test with tRPC mocked
-- [ ] A migration test proves the database rejects a bad row, e.g. annual CTC 1.5 or an invalid date
+- [ ] Schema tests (agreed seam: the migrated schema is an interface, per D-013), one per kind of rule: integer annual CTC > 0, valid ISO dates, lower-case email, non-blank name, at most one current assignment per employee, foreign keys enforced
 - [ ] One root command runs typecheck, lint and all tests
