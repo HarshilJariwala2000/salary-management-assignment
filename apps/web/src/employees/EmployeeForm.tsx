@@ -61,16 +61,18 @@ function validate(values: EmployeeFormValues): Partial<Record<keyof EmployeeForm
 /** The employee fields. Department and currency are shown read-only, derived from role and country. */
 export function EmployeeForm({
   submitLabel,
+  initialValues = emptyValues,
   submitting = false,
   onSubmit = async () => {},
 }: {
   submitLabel: string;
+  initialValues?: EmployeeFormValues;
   submitting?: boolean;
   onSubmit?: (draft: EmployeeDraft) => Promise<SubmitProblem | void>;
 }) {
   const trpc = useTRPC();
   const lookups = useQuery(trpc.lookups.all.queryOptions());
-  const form = useForm<EmployeeFormValues>({ initialValues: emptyValues, validate });
+  const form = useForm<EmployeeFormValues>({ initialValues, validate });
   const [failure, setFailure] = useState<string | null>(null);
 
   async function submit(values: EmployeeFormValues) {

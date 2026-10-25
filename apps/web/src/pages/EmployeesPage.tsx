@@ -1,15 +1,17 @@
 import { useState } from 'react';
-import { Button, Group, Loader, NativeSelect, Pagination, Stack, Table, Text, Title } from '@mantine/core';
+import { ActionIcon, Button, Group, Loader, NativeSelect, Pagination, Stack, Table, Text, Title } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { DEFAULT_PAGE_SIZE, PAGE_SIZES } from '@salary/shared';
 import { AddEmployeeDrawer } from '../employees/AddEmployeeDrawer';
+import { EditEmployeeDrawer } from '../employees/EditEmployeeDrawer';
 import { formatDate, formatMoney } from '../format';
 import { useTRPC } from '../trpc';
 
 export function EmployeesPage() {
   const trpc = useTRPC();
   const [addOpened, addDrawer] = useDisclosure(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<(typeof PAGE_SIZES)[number]>(DEFAULT_PAGE_SIZE);
   const employees = useQuery({
@@ -28,6 +30,7 @@ export function EmployeesPage() {
         <Button onClick={addDrawer.open}>Add employee</Button>
       </Group>
       <AddEmployeeDrawer opened={addOpened} onClose={addDrawer.close} />
+      <EditEmployeeDrawer employeeId={editingId} onClose={() => setEditingId(null)} />
       {employees.data ? (
         <Table.ScrollContainer minWidth={900}>
           <Table striped highlightOnHover>
@@ -40,6 +43,7 @@ export function EmployeesPage() {
                 <Table.Th>Department</Table.Th>
                 <Table.Th>Joined</Table.Th>
                 <Table.Th ta="right">Annual CTC</Table.Th>
+                <Table.Th />
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
@@ -52,6 +56,11 @@ export function EmployeesPage() {
                   <Table.Td>{e.department.name}</Table.Td>
                   <Table.Td>{formatDate(e.joiningDate)}</Table.Td>
                   <Table.Td ta="right">{formatMoney(e.annualCtc, e.country.currencyCode)}</Table.Td>
+                  <Table.Td>
+                    <ActionIcon variant="subtle" aria-label={`Edit ${e.fullName}`} onClick={() => setEditingId(e.id)}>
+                      ✎
+                    </ActionIcon>
+                  </Table.Td>
                 </Table.Tr>
               ))}
             </Table.Tbody>
