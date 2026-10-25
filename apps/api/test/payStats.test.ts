@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { analysePayGroup } from '../src/domain/payStats';
+import { analysePayGroup, summariseByRole } from '../src/domain/payStats';
 
 describe('analysePayGroup: summary', () => {
   // Expected values worked out by hand.
@@ -38,5 +38,32 @@ describe('analysePayGroup: refuses input it cannot trust', () => {
     { name: 'a fractional salary', salaries: [100, 150.5] },
   ])('throws a RangeError for $name', ({ salaries }) => {
     expect(() => analysePayGroup(salaries)).toThrow(RangeError);
+  });
+});
+
+describe('summariseByRole', () => {
+  it('summarises each role from rows sorted by role, then salary', () => {
+    const rows = [
+      { roleId: 1, annualCtc: 100 },
+      { roleId: 1, annualCtc: 300 },
+      // A new role may start lower than the previous one ended.
+      { roleId: 4, annualCtc: 50 },
+    ];
+
+    expect(summariseByRole(rows)).toEqual([
+      { roleId: 1, summary: { headcount: 2, min: 100, max: 300, average: 200, median: 200, spreadAmount: 200, spreadRatio: 3 } },
+      { roleId: 4, summary: { headcount: 1, min: 50, max: 50, average: 50, median: 50, spreadAmount: 0, spreadRatio: 1 } },
+    ]);
+  });
+
+  it('returns nothing for a country with no employees', () => {
+    expect(summariseByRole([])).toEqual([]);
+  });
+
+  it.each([
+    { name: 'roles out of order', rows: [{ roleId: 4, annualCtc: 100 }, { roleId: 1, annualCtc: 200 }] },
+    { name: 'salaries out of order within a role', rows: [{ roleId: 1, annualCtc: 300 }, { roleId: 1, annualCtc: 100 }] },
+  ])('throws a RangeError for $name', ({ rows }) => {
+    expect(() => summariseByRole(rows)).toThrow(RangeError);
   });
 });
