@@ -59,4 +59,13 @@ describe('employees.create', () => {
       code: 'BAD_REQUEST',
     });
   });
+
+  it('rejects a joining date after today, naming the joiningDate field, but accepts today', async () => {
+    const { caller } = await makeCaller({ today: '2026-06-30' });
+
+    await expect(
+      caller.employees.create(await newEmployee(caller, { joiningDate: '2026-07-01' })),
+    ).rejects.toMatchObject({ code: 'BAD_REQUEST', cause: { field: 'joiningDate' } });
+    await expect(caller.employees.create(await newEmployee(caller, { joiningDate: '2026-06-30' }))).resolves.toBeDefined();
+  });
 });
