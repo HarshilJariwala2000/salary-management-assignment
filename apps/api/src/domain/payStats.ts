@@ -16,11 +16,39 @@ export interface PaySummary {
   spreadRatio: number;
 }
 
-/** Summarises one pay group, given its annual CTCs sorted ascending. */
-export function analysePayGroup(sortedSalaries: readonly number[]): { summary: PaySummary } {
+/** Bucket [lower, upper): includes its lower bound, excludes its upper, except the last, which includes max. */
+export interface HistogramBucket {
+  lower: number;
+  upper: number;
+  count: number;
+}
+
+const BUCKETS = 10;
+
+/** Summarises one pay group and buckets its salaries, given its annual CTCs sorted ascending. */
+export function analysePayGroup(sortedSalaries: readonly number[]): { summary: PaySummary; histogram: HistogramBucket[] } {
   if (sortedSalaries.length === 0) throw new RangeError('A pay group needs at least one salary');
   assertSortedSalaries(sortedSalaries);
-  return { summary: summarise(sortedSalaries) };
+  return { summary: summarise(sortedSalaries), histogram: histogram(sortedSalaries) };
+}
+
+function histogram(sorted: readonly number[]): HistogramBucket[] {
+  const min = sorted[0]!;
+  const max = sorted[sorted.length - 1]!;
+  if (min === max) return [{ lower: min, upper: max, count: sorted.length }];
+
+  const width = (max - min) / BUCKETS;
+  const buckets = Array.from({ length: BUCKETS }, (_, i) => ({
+    lower: min + i * width,
+    upper: i === BUCKETS - 1 ? max : min + (i + 1) * width,
+    count: 0,
+  }));
+  for (const salary of sorted) {
+    // Clamp: max (and floating-point error near it) belongs in the last bucket.
+    const index = Math.min(Math.floor((salary - min) / width), BUCKETS - 1);
+    buckets[index]!.count++;
+  }
+  return buckets;
 }
 
 /**
