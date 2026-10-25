@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { makeCaller } from './support/app';
-import { employee, given } from './support/employees';
+import { employee, given, newEmployee } from './support/employees';
 
 async function countryId(caller: Awaited<ReturnType<typeof makeCaller>>['caller'], isoCode: string) {
   return (await caller.lookups.all()).countries.find((c) => c.isoCode === isoCode)!.id;
@@ -44,6 +44,34 @@ describe('insights.countryOverview', () => {
           },
         },
       ],
+    });
+  });
+
+  it('returns not-found for a country that does not exist, and no roles for a country without employees', async () => {
+    const { caller } = await makeCaller();
+
+    await expect(caller.insights.countryOverview({ countryId: 9999 })).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    expect((await caller.insights.countryOverview({ countryId: await countryId(caller, 'BR') })).roles).toEqual([]);
+  });
+
+  it('counts employees created through the API and reflects edited salaries (from tickets 04 and 05)', async () => {
+    const { caller } = await makeCaller();
+    const india = await countryId(caller, 'IN');
+    const asha = await caller.employees.create(await newEmployee(caller, { annualCtc: 1_000_000 }));
+    await caller.employees.create(await newEmployee(caller, { fullName: 'Ben Das', email: 'ben.das@acme.test', annualCtc: 2_000_000 }));
+
+    expect((await caller.insights.countryOverview({ countryId: india })).roles[0]!.summary).toMatchObject({
+      headcount: 2,
+      min: 1_000_000,
+      median: 1_500_000,
+    });
+
+    await caller.employees.update({ id: asha.id, ...(await newEmployee(caller, { annualCtc: 1_200_000 })) });
+
+    expect((await caller.insights.countryOverview({ countryId: india })).roles[0]!.summary).toMatchObject({
+      headcount: 2,
+      min: 1_200_000,
+      median: 1_600_000,
     });
   });
 });
