@@ -18,7 +18,10 @@ export function RoleDetailView({
   onBack: () => void;
 }) {
   const trpc = useTRPC();
+  // What HR typed, and the last valid percentage, which is what the API is asked for.
+  const [percentInput, setPercentInput] = useState<number | string>(10);
   const [percent, setPercent] = useState(10);
+  const percentIsValid = typeof percentInput === 'number' && Number.isInteger(percentInput) && percentInput >= 1 && percentInput <= 50;
   const detail = useQuery({
     ...trpc.insights.roleDetail.queryOptions({ countryId, roleId, percent }),
     placeholderData: keepPreviousData,
@@ -83,11 +86,15 @@ export function RoleDetailView({
       <NumberInput
         label="Top and bottom %"
         description="How much of the role to list at each end"
-        value={percent}
-        onChange={(value) => typeof value === 'number' && setPercent(value)}
-        min={1}
-        max={50}
+        value={percentInput}
+        onChange={(value) => {
+          setPercentInput(value);
+          if (typeof value === 'number' && Number.isInteger(value) && value >= 1 && value <= 50) setPercent(value);
+        }}
+        error={percentIsValid ? undefined : 'Enter a whole number from 1 to 50'}
+        clampBehavior="none"
         allowDecimal={false}
+        allowNegative={false}
         w={220}
       />
       <SimpleGrid cols={{ base: 1, md: 2 }}>
