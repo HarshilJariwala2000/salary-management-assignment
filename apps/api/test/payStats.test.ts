@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { analysePayGroup, summariseByRole } from '../src/domain/payStats';
+import { analysePayGroup, earnerCount, summariseByRole } from '../src/domain/payStats';
 
 describe('analysePayGroup: summary', () => {
   // Expected values worked out by hand.
@@ -98,5 +98,32 @@ describe('analysePayGroup: histogram', () => {
   it('counts every salary exactly once', () => {
     const salaries = [101, 150, 151, 333, 334, 335, 700, 701, 999, 1000, 1000];
     expect(counts(salaries).reduce((a, b) => a + b, 0)).toBe(salaries.length);
+  });
+});
+
+describe('earnerCount', () => {
+  // How many people each of the top and bottom lists shows. Worked by hand.
+  it.each([
+    { headcount: 7, percent: 5, count: 1, why: '0.35 rounds up to 1' },
+    { headcount: 25, percent: 10, count: 3, why: '2.5 rounds up to 3' },
+    { headcount: 1000, percent: 1, count: 10, why: 'exactly 10' },
+    { headcount: 10, percent: 50, count: 5, why: 'exactly half' },
+    { headcount: 3, percent: 50, count: 1, why: '1.5 rounds up to 2, capped at half the group (1)' },
+    { headcount: 5, percent: 50, count: 2, why: '2.5 rounds up to 3, capped at half the group (2)' },
+    { headcount: 2, percent: 50, count: 1, why: 'one at each end' },
+    { headcount: 1, percent: 1, count: 1, why: 'a group of one: the same person is top and bottom' },
+    { headcount: 1, percent: 50, count: 1, why: 'a group of one, whatever the percentage' },
+  ])('$percent% of $headcount → $count ($why)', ({ headcount, percent, count }) => {
+    expect(earnerCount(headcount, percent)).toBe(count);
+  });
+
+  it.each([
+    { headcount: 10, percent: 0 },
+    { headcount: 10, percent: 51 },
+    { headcount: 10, percent: 12.5 },
+    { headcount: 0, percent: 10 },
+    { headcount: 2.5, percent: 10 },
+  ])('throws a RangeError for $percent% of $headcount', ({ headcount, percent }) => {
+    expect(() => earnerCount(headcount, percent)).toThrow(RangeError);
   });
 });
