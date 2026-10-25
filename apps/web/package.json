@@ -10,7 +10,9 @@
   },
   "dependencies": {
     "@mantine/core": "^8.3.18",
+    "@mantine/form": "^8.3.18",
     "@mantine/hooks": "^8.3.18",
+    "@mantine/notifications": "^8.3.18",
     "@salary/shared": "*",
     "@tanstack/react-query": "^5.104.5",
     "@trpc/client": "^11.19.0",
