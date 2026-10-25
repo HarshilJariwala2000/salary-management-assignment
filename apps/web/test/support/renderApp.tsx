@@ -8,7 +8,7 @@ import { AppProviders } from '../../src/AppProviders';
 
 /**
  * Canned responses keyed by procedure path, e.g. { 'lookups.all': {...} }.
- * A function receives the call's input, for responses that depend on it.
+ * A function receives the call's input, for responses that depend on it, and may return a Promise.
  */
 export type ApiResponses = Record<string, unknown>;
 
@@ -31,12 +31,19 @@ function cannedLink(responses: ApiResponses, calls: ApiCall[]): TRPCLink<AppRout
           return;
         }
         const response = responses[op.path];
-        try {
-          const data = typeof response === 'function' ? response(op.input) : response;
+        const answer = (data: unknown) => {
           observer.next({ result: { type: 'data', data } });
           observer.complete();
-        } catch (error) {
+        };
+        const fail = (error: unknown) =>
           observer.error(error instanceof TRPCClientError ? error : TRPCClientError.from(error as Error));
+        try {
+          const data = typeof response === 'function' ? response(op.input) : response;
+          // A Promise answers later, like a slow network, so a test can see what renders meanwhile.
+          if (data instanceof Promise) data.then(answer, fail);
+          else answer(data);
+        } catch (error) {
+          fail(error);
         }
       });
 }
