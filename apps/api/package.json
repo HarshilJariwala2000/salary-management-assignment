@@ -7,6 +7,7 @@
   },
   "scripts": {
     "dev": "tsx watch src/main.ts",
+    "seed:reset": "tsx src/seedReset.ts",
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run"
   },

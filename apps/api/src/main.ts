@@ -5,7 +5,10 @@ import fastifyStatic from '@fastify/static';
 import { fastifyTRPCPlugin } from '@trpc/server/adapters/fastify';
 import Fastify from 'fastify';
 import { openDatabase } from './adapters/typeorm/database';
+import { seedIfEmpty } from './adapters/typeorm/seeding';
 import { buildApp } from './buildApp';
+import { SEED, SEED_EMPLOYEES, localToday } from './seed/config';
+import { generateSeed } from './seed/generateSeed';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const port = Number(process.env.PORT ?? 3000);
@@ -13,13 +16,14 @@ const databasePath = process.env.DATABASE_PATH ?? path.resolve(here, '../salary.
 const webDist = process.env.WEB_DIST ?? path.resolve(here, '../../web/dist');
 
 const dataSource = await openDatabase({ database: databasePath });
-const app = buildApp({
-  dataSource,
-  // Local calendar date as YYYY-MM-DD ('en-CA' formats dates that way).
-  clock: { today: () => new Date().toLocaleDateString('en-CA') },
-});
+const app = buildApp({ dataSource, clock: { today: localToday } });
 
 const server = Fastify({ logger: true });
+
+const seeded = await seedIfEmpty(dataSource, () =>
+  generateSeed({ count: SEED_EMPLOYEES, seed: SEED, today: localToday() }),
+);
+if (seeded > 0) server.log.info(`Seeded ${seeded} employees`);
 
 await server.register(fastifyTRPCPlugin, {
   prefix: '/trpc',
