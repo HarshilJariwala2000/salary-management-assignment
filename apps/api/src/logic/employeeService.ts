@@ -1,5 +1,5 @@
 import type { EmployeeDraft, EmployeeListQuery } from '@salary/shared';
-import { InvalidField } from './errors';
+import { InvalidField, NotFound } from './errors';
 import type { Clock, EmployeeStore, EmployeeView, LookupStore, Page } from './ports';
 
 export function createEmployeeService({
@@ -17,7 +17,9 @@ export function createEmployeeService({
     },
 
     async get(id: number): Promise<EmployeeView> {
-      return (await employees.get(id))!;
+      const employee = await employees.get(id);
+      if (!employee) throw new NotFound('employee');
+      return employee;
     },
 
     async create(draft: EmployeeDraft): Promise<EmployeeView> {

@@ -7,6 +7,14 @@ export abstract class DomainError extends Error {
   readonly field?: string;
 }
 
+export class NotFound extends DomainError {
+  readonly kind = 'NOT_FOUND';
+  constructor(readonly entity: 'employee' | 'country' | 'payGroup') {
+    super(`${entity === 'payGroup' ? 'Pay group' : entity[0]!.toUpperCase() + entity.slice(1)} not found`);
+    this.name = 'NotFound';
+  }
+}
+
 export type EmployeeField = 'fullName' | 'email' | 'countryId' | 'roleId' | 'joiningDate' | 'annualCtc';
 
 export class InvalidField extends DomainError {
