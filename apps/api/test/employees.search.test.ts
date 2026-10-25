@@ -73,4 +73,10 @@ describe('employees.list: search, filters and sorting', () => {
       'Anil Kumar',
     ]);
   });
+
+  it('rejects sorting by salary without a country, so currencies are never ranked together', async () => {
+    const { caller } = await makeCaller();
+
+    await expect(caller.employees.list({ sortBy: 'annualCtc' })).rejects.toMatchObject({ code: 'BAD_REQUEST' });
+  });
 });
