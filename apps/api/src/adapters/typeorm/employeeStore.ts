@@ -98,7 +98,7 @@ async function findEmployee(db: DataSource | EntityManager, id: number): Promise
   return row && toEmployeeView(row);
 }
 
-/** Makes %, _ and \\ match themselves in a LIKE pattern. */
+/** Makes %, _ and the escape character match themselves in a LIKE pattern. */
 function escapeLike(text: string): string {
   return text.replace(/[\\%_]/g, (c) => `\\${c}`);
 }
