@@ -1,11 +1,19 @@
-import { Group, Loader, Stack, Table, Text, Title } from '@mantine/core';
-import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
+import { Group, Loader, NativeSelect, Pagination, Stack, Table, Text, Title } from '@mantine/core';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { DEFAULT_PAGE_SIZE, PAGE_SIZES } from '@salary/shared';
 import { formatDate, formatMoney } from '../format';
 import { useTRPC } from '../trpc';
 
 export function EmployeesPage() {
   const trpc = useTRPC();
-  const employees = useQuery(trpc.employees.list.queryOptions({}));
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<(typeof PAGE_SIZES)[number]>(DEFAULT_PAGE_SIZE);
+  const employees = useQuery({
+    ...trpc.employees.list.queryOptions({ page, pageSize }),
+    placeholderData: keepPreviousData,
+  });
+  const totalPages = employees.data ? Math.max(1, Math.ceil(employees.data.total / pageSize)) : 1;
 
   return (
     <Stack>
@@ -45,6 +53,19 @@ export function EmployeesPage() {
       ) : (
         <Loader />
       )}
+      <Group justify="space-between">
+        <NativeSelect
+          label="Rows per page"
+          data={PAGE_SIZES.map(String)}
+          value={String(pageSize)}
+          onChange={(event) => {
+            setPageSize(Number(event.currentTarget.value) as (typeof PAGE_SIZES)[number]);
+            setPage(1);
+          }}
+          w={140}
+        />
+        <Pagination total={totalPages} value={page} onChange={setPage} />
+      </Group>
     </Stack>
   );
 }
