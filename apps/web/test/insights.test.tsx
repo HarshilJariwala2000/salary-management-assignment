@@ -118,4 +118,19 @@ describe('Insights page', () => {
     await waitFor(() => expect(lastRoleDetailInput(calls)).toEqual({ countryId: 1, roleId: 15, percent: 25 }));
     expect(await screen.findByRole('table', { name: 'Top 25% earners' })).toBeInTheDocument();
   });
+
+  it('rejects a percentage outside 1–50 without asking the API, keeping the last lists', async () => {
+    const { user, calls } = await openInsights();
+    await user.selectOptions(screen.getByLabelText('Country'), 'India');
+    await user.click(await screen.findByRole('button', { name: 'Recruiter' }));
+    await screen.findByRole('table', { name: 'Top 10% earners' });
+
+    const percent = screen.getByLabelText('Top and bottom %');
+    await user.clear(percent);
+    await user.type(percent, '60');
+
+    expect(percent).toHaveAccessibleDescription(/Enter a whole number from 1 to 50/);
+    expect(calls.some((c) => c.path === 'insights.roleDetail' && (c.input as { percent: number }).percent === 60)).toBe(false);
+    expect(screen.getByRole('table', { name: 'Top 6% earners' })).toBeInTheDocument();
+  });
 });
