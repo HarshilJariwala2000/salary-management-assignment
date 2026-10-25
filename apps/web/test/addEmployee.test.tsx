@@ -8,6 +8,8 @@ async function openAddEmployee(responses: Record<string, unknown> = {}) {
   const app = renderApp({ 'lookups.all': lookups, 'employees.list': twoEmployees, ...responses });
   await user.click(await screen.findByRole('button', { name: 'Add employee' }));
   const form = await screen.findByRole('dialog', { name: 'Add employee' });
+  // The dropdowns fill once lookups arrive, as a user would see.
+  await within(form).findByRole('option', { name: 'Germany' });
   return { user, form, ...app };
 }
 

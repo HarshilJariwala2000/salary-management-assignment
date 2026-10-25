@@ -1,12 +1,15 @@
 import { useState } from 'react';
-import { Group, Loader, NativeSelect, Pagination, Stack, Table, Text, Title } from '@mantine/core';
+import { Button, Group, Loader, NativeSelect, Pagination, Stack, Table, Text, Title } from '@mantine/core';
+import { useDisclosure } from '@mantine/hooks';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { DEFAULT_PAGE_SIZE, PAGE_SIZES } from '@salary/shared';
+import { AddEmployeeDrawer } from '../employees/AddEmployeeDrawer';
 import { formatDate, formatMoney } from '../format';
 import { useTRPC } from '../trpc';
 
 export function EmployeesPage() {
   const trpc = useTRPC();
+  const [addOpened, addDrawer] = useDisclosure(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<(typeof PAGE_SIZES)[number]>(DEFAULT_PAGE_SIZE);
   const employees = useQuery({
@@ -18,9 +21,13 @@ export function EmployeesPage() {
   return (
     <Stack>
       <Group justify="space-between">
-        <Title order={2}>Employees</Title>
-        {employees.data && <Text c="dimmed">{`${employees.data.total.toLocaleString('en-US')} employees`}</Text>}
+        <Group gap="sm">
+          <Title order={2}>Employees</Title>
+          {employees.data && <Text c="dimmed">{`${employees.data.total.toLocaleString('en-US')} employees`}</Text>}
+        </Group>
+        <Button onClick={addDrawer.open}>Add employee</Button>
       </Group>
+      <AddEmployeeDrawer opened={addOpened} onClose={addDrawer.close} />
       {employees.data ? (
         <Table.ScrollContainer minWidth={900}>
           <Table striped highlightOnHover>
