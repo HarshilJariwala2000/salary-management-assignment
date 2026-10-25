@@ -8,6 +8,36 @@ import { EditEmployeeDrawer } from '../employees/EditEmployeeDrawer';
 import { formatDate, formatMoney } from '../format';
 import { useTRPC } from '../trpc';
 
+interface Filters {
+  countryId?: number;
+  roleId?: number;
+  departmentId?: number;
+}
+
+/** A filter dropdown whose first option, "All …", means no filter. */
+function FilterSelect({
+  label,
+  allLabel,
+  options,
+  value,
+  onChange,
+}: {
+  label: string;
+  allLabel: string;
+  options: { id: number; name: string }[];
+  value: number | undefined;
+  onChange: (value: number | undefined) => void;
+}) {
+  return (
+    <NativeSelect
+      label={label}
+      data={[{ value: '', label: allLabel }, ...options.map((o) => ({ value: String(o.id), label: o.name }))]}
+      value={value === undefined ? '' : String(value)}
+      onChange={(event) => onChange(event.currentTarget.value ? Number(event.currentTarget.value) : undefined)}
+    />
+  );
+}
+
 export function EmployeesPage() {
   const trpc = useTRPC();
   const [addOpened, addDrawer] = useDisclosure(false);
@@ -17,10 +47,24 @@ export function EmployeesPage() {
   const [search, setSearch] = useState('');
   // Wait for a pause in typing before asking the API.
   const [debouncedSearch] = useDebouncedValue(search.trim(), 250);
+  const [filters, setFilters] = useState<Filters>({});
+  const lookups = useQuery(trpc.lookups.all.queryOptions());
   const employees = useQuery({
-    ...trpc.employees.list.queryOptions({ page, pageSize, ...(debouncedSearch && { search: debouncedSearch }) }),
+    ...trpc.employees.list.queryOptions({
+      page,
+      pageSize,
+      ...(debouncedSearch && { search: debouncedSearch }),
+      ...filters,
+    }),
     placeholderData: keepPreviousData,
   });
+  function setFilter(change: Filters) {
+    // Drop cleared filters so the request only carries the ones in use.
+    setFilters((current) =>
+      Object.fromEntries(Object.entries({ ...current, ...change }).filter(([, v]) => v !== undefined)),
+    );
+    setPage(1);
+  }
   const totalPages = employees.data ? Math.max(1, Math.ceil(employees.data.total / pageSize)) : 1;
 
   return (
@@ -32,16 +76,39 @@ export function EmployeesPage() {
         </Group>
         <Button onClick={addDrawer.open}>Add employee</Button>
       </Group>
-      <TextInput
-        label="Search name or email"
-        placeholder="e.g. asha or @acme.test"
-        value={search}
-        onChange={(event) => {
-          setSearch(event.currentTarget.value);
-          setPage(1);
-        }}
-        maw={360}
-      />
+      <Group align="flex-end">
+        <TextInput
+          label="Search name or email"
+          placeholder="e.g. asha or @acme.test"
+          value={search}
+          onChange={(event) => {
+            setSearch(event.currentTarget.value);
+            setPage(1);
+          }}
+          w={260}
+        />
+        <FilterSelect
+          label="Filter by country"
+          allLabel="All countries"
+          options={lookups.data?.countries ?? []}
+          value={filters.countryId}
+          onChange={(countryId) => setFilter({ countryId })}
+        />
+        <FilterSelect
+          label="Filter by role"
+          allLabel="All roles"
+          options={lookups.data?.roles ?? []}
+          value={filters.roleId}
+          onChange={(roleId) => setFilter({ roleId })}
+        />
+        <FilterSelect
+          label="Filter by department"
+          allLabel="All departments"
+          options={lookups.data?.departments ?? []}
+          value={filters.departmentId}
+          onChange={(departmentId) => setFilter({ departmentId })}
+        />
+      </Group>
       <AddEmployeeDrawer opened={addOpened} onClose={addDrawer.close} />
       <EditEmployeeDrawer employeeId={editingId} onClose={() => setEditingId(null)} />
       {employees.data ? (
