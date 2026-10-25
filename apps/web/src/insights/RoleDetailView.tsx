@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Button, Card, Group, Loader, NumberInput, SimpleGrid, Stack, Table, Text, Title } from '@mantine/core';
 import { BarChart } from '@mantine/charts';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { DEFAULT_TOP_BOTTOM_PERCENT, topBottomPercent } from '@salary/shared';
 import { formatDate, formatDifference, formatMoney } from '../format';
 import { useTRPC } from '../trpc';
 
@@ -19,9 +20,9 @@ export function RoleDetailView({
 }) {
   const trpc = useTRPC();
   // What HR typed, and the last valid percentage, which is what the API is asked for.
-  const [percentInput, setPercentInput] = useState<number | string>(10);
-  const [percent, setPercent] = useState(10);
-  const percentIsValid = typeof percentInput === 'number' && Number.isInteger(percentInput) && percentInput >= 1 && percentInput <= 50;
+  const [percentInput, setPercentInput] = useState<number | string>(DEFAULT_TOP_BOTTOM_PERCENT);
+  const [percent, setPercent] = useState(DEFAULT_TOP_BOTTOM_PERCENT);
+  const percentCheck = topBottomPercent.safeParse(percentInput);
   const detail = useQuery({
     ...trpc.insights.roleDetail.queryOptions({ countryId, roleId, percent }),
     placeholderData: keepPreviousData,
@@ -89,9 +90,10 @@ export function RoleDetailView({
         value={percentInput}
         onChange={(value) => {
           setPercentInput(value);
-          if (typeof value === 'number' && Number.isInteger(value) && value >= 1 && value <= 50) setPercent(value);
+          const check = topBottomPercent.safeParse(value);
+          if (check.success) setPercent(check.data);
         }}
-        error={percentIsValid ? undefined : 'Enter a whole number from 1 to 50'}
+        error={percentCheck.success ? undefined : percentCheck.error.issues[0]!.message}
         clampBehavior="none"
         allowDecimal={false}
         allowNegative={false}
