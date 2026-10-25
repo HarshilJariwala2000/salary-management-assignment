@@ -8,6 +8,20 @@ import { EditEmployeeDrawer } from '../employees/EditEmployeeDrawer';
 import { formatDate, formatMoney } from '../format';
 import { useTRPC } from '../trpc';
 
+type SortBy = 'name' | 'joiningDate' | 'annualCtc';
+type SortDirection = 'asc' | 'desc';
+
+const sortOptions: { value: `${SortBy}:${SortDirection}`; label: string }[] = [
+  { value: 'name:asc', label: 'Name (A–Z)' },
+  { value: 'name:desc', label: 'Name (Z–A)' },
+  { value: 'joiningDate:desc', label: 'Newest joiners' },
+  { value: 'joiningDate:asc', label: 'Longest serving' },
+  { value: 'annualCtc:desc', label: 'Highest paid' },
+  { value: 'annualCtc:asc', label: 'Lowest paid' },
+];
+
+const defaultSort = { sortBy: 'name', sortDirection: 'asc' } as const;
+
 interface Filters {
   countryId?: number;
   roleId?: number;
@@ -48,6 +62,9 @@ export function EmployeesPage() {
   // Wait for a pause in typing before asking the API.
   const [debouncedSearch] = useDebouncedValue(search.trim(), 250);
   const [filters, setFilters] = useState<Filters>({});
+  const [sort, setSort] = useState<{ sortBy: SortBy; sortDirection: SortDirection }>(defaultSort);
+  // Salaries only compare within one currency, so salary sorts need a country (D-004).
+  const canSortBySalary = filters.countryId !== undefined;
   const lookups = useQuery(trpc.lookups.all.queryOptions());
   const employees = useQuery({
     ...trpc.employees.list.queryOptions({
@@ -55,10 +72,12 @@ export function EmployeesPage() {
       pageSize,
       ...(debouncedSearch && { search: debouncedSearch }),
       ...filters,
+      ...sort,
     }),
     placeholderData: keepPreviousData,
   });
   function setFilter(change: Filters) {
+    if ('countryId' in change && change.countryId === undefined && sort.sortBy === 'annualCtc') setSort(defaultSort);
     // Drop cleared filters so the request only carries the ones in use.
     setFilters((current) =>
       Object.fromEntries(Object.entries({ ...current, ...change }).filter(([, v]) => v !== undefined)),
@@ -107,6 +126,17 @@ export function EmployeesPage() {
           options={lookups.data?.departments ?? []}
           value={filters.departmentId}
           onChange={(departmentId) => setFilter({ departmentId })}
+        />
+        <NativeSelect
+          label="Sort by"
+          description={canSortBySalary ? undefined : 'Choose a country to sort by salary'}
+          data={sortOptions.map((o) => ({ ...o, disabled: o.value.startsWith('annualCtc') && !canSortBySalary }))}
+          value={`${sort.sortBy}:${sort.sortDirection}`}
+          onChange={(event) => {
+            const [sortBy, sortDirection] = event.currentTarget.value.split(':') as [SortBy, SortDirection];
+            setSort({ sortBy, sortDirection });
+            setPage(1);
+          }}
         />
       </Group>
       <AddEmployeeDrawer opened={addOpened} onClose={addDrawer.close} />
