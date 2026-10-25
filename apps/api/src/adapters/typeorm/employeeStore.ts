@@ -22,7 +22,7 @@ interface EmployeeRow {
 
 export function createEmployeeStore(dataSource: DataSource): EmployeeStore {
   return {
-    async list({ search, page, pageSize }) {
+    async list({ search, countryId, roleId, departmentId, page, pageSize }) {
       const query = currentAssignments(dataSource);
       if (search) {
         // lower(...) LIKE works the same on SQLite and Postgres; emails are stored lower-cased.
@@ -30,6 +30,9 @@ export function createEmployeeStore(dataSource: DataSource): EmployeeStore {
           pattern: `%${escapeLike(search.toLowerCase())}%`,
         });
       }
+      if (countryId) query.andWhere('a.countryId = :countryId', { countryId });
+      if (roleId) query.andWhere('a.roleId = :roleId', { roleId });
+      if (departmentId) query.andWhere('r.departmentId = :departmentId', { departmentId });
       const rows = await selectEmployeeView(query.clone())
         .orderBy('e.fullName', 'ASC')
         .addOrderBy('e.id', 'ASC')
