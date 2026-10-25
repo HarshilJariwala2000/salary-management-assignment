@@ -36,4 +36,25 @@ describe('Insights page', () => {
     ]);
     expect(calls.find((c) => c.path === 'insights.countryOverview')?.input).toEqual({ countryId: 1 });
   });
+
+  it('sorts roles by any column, ascending first, then descending', async () => {
+    const { user } = await openInsights();
+    await user.selectOptions(screen.getByLabelText('Country'), 'India');
+    await screen.findByRole('row', { name: /Recruiter/ });
+    const roleOrder = () =>
+      screen
+        .getAllByRole('row')
+        .slice(1)
+        .map((row) => within(row).getAllByRole('cell')[0]!.textContent);
+
+    expect(roleOrder()).toEqual(['Account Executive', 'Recruiter', 'Software Engineer']);
+
+    await user.click(screen.getByRole('button', { name: 'Median' }));
+    expect(roleOrder()).toEqual(['Recruiter', 'Software Engineer', 'Account Executive']);
+    expect(screen.getByRole('columnheader', { name: 'Median' })).toHaveAttribute('aria-sort', 'ascending');
+
+    await user.click(screen.getByRole('button', { name: 'Median' }));
+    expect(roleOrder()).toEqual(['Account Executive', 'Software Engineer', 'Recruiter']);
+    expect(screen.getByRole('columnheader', { name: 'Median' })).toHaveAttribute('aria-sort', 'descending');
+  });
 });
