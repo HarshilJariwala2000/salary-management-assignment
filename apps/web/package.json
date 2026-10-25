@@ -9,6 +9,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@mantine/charts": "^8.3.18",
     "@mantine/core": "^8.3.18",
     "@mantine/form": "^8.3.18",
     "@mantine/hooks": "^8.3.18",
@@ -18,7 +19,8 @@
     "@trpc/client": "^11.19.0",
     "@trpc/tanstack-react-query": "^11.19.0",
     "react": "^19.1.10",
-    "react-dom": "^19.1.10"
+    "react-dom": "^19.1.10",
+    "recharts": "^2.15.4"
   },
   "devDependencies": {
     "@salary/api": "*",
