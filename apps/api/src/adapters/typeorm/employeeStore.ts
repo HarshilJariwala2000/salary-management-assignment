@@ -1,4 +1,4 @@
-import type { DataSource } from 'typeorm';
+import type { DataSource, EntityManager } from 'typeorm';
 import type { EmployeeStore, EmployeeView } from '../../logic/ports';
 import { currentAssignments } from './currentAssignments';
 
@@ -32,7 +32,27 @@ export function createEmployeeStore(dataSource: DataSource): EmployeeStore {
       const total = Number(await query.getCount());
       return { rows: rows.map(toEmployeeView), total };
     },
+
+    async create(draft) {
+      return dataSource.transaction(async (tx) => {
+        const [{ id }] = await tx.query(
+          'INSERT INTO employee (full_name, email, joining_date) VALUES (?, ?, ?) RETURNING id',
+          [draft.fullName, draft.email, draft.joiningDate],
+        );
+        await tx.query(
+          `INSERT INTO assignment (employee_id, country_id, role_id, annual_ctc, effective_from)
+           VALUES (?, ?, ?, ?, ?)`,
+          [id, draft.countryId, draft.roleId, draft.annualCtc, draft.joiningDate],
+        );
+        return (await findEmployee(tx, id))!;
+      });
+    },
   };
+}
+
+async function findEmployee(db: DataSource | EntityManager, id: number): Promise<EmployeeView | undefined> {
+  const row = await selectEmployeeView(currentAssignments(db)).where('e.id = :id', { id }).getRawOne<EmployeeRow>();
+  return row && toEmployeeView(row);
 }
 
 function selectEmployeeView(query: ReturnType<typeof currentAssignments>) {

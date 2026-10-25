@@ -1,4 +1,4 @@
-import type { EmployeeListQuery } from '@salary/shared';
+import type { EmployeeDraft, EmployeeListQuery } from '@salary/shared';
 
 export interface Country {
   id: number;
@@ -43,6 +43,8 @@ export interface Page<T> {
 export interface EmployeeStore {
   /** Filtering, sorting and pagination all happen in SQL; ORDER BY always ends with employee id. */
   list(query: EmployeeListQuery): Promise<Page<EmployeeView>>;
+  /** One transaction: the employee plus a current assignment starting on the joining date. */
+  create(draft: EmployeeDraft): Promise<EmployeeView>;
 }
 
 export interface LookupStore {
