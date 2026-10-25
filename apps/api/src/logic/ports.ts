@@ -49,6 +49,8 @@ export interface EmployeeStore {
 
 export interface LookupStore {
   all(): Promise<Lookups>;
+  countryExists(id: number): Promise<boolean>;
+  roleExists(id: number): Promise<boolean>;
 }
 
 export interface Clock {

@@ -18,5 +18,13 @@ export function createLookupStore(dataSource: DataSource): LookupStore {
         roles: roles.map(({ id, name, department }) => ({ id, name, department: { id: department.id, name: department.name } })),
       };
     },
+
+    countryExists(id) {
+      return dataSource.getRepository(CountryEntity).existsBy({ id });
+    },
+
+    roleExists(id) {
+      return dataSource.getRepository(RoleEntity).existsBy({ id });
+    },
   };
 }

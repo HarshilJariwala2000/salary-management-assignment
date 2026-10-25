@@ -9,9 +9,10 @@ import type { Context } from './transport/trpc/trpc';
 
 /** Composition root: the only place that connects adapters to services. */
 export function buildApp({ dataSource, clock }: { dataSource: DataSource; clock: Clock }) {
+  const lookups = createLookupStore(dataSource);
   const context: Context = {
-    employees: createEmployeeService({ employees: createEmployeeStore(dataSource), clock }),
-    lookups: createLookupService({ lookups: createLookupStore(dataSource) }),
+    employees: createEmployeeService({ employees: createEmployeeStore(dataSource), lookups, clock }),
+    lookups: createLookupService({ lookups }),
   };
   return { router: appRouter, createContext: () => context };
 }
