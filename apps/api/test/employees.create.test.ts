@@ -68,4 +68,16 @@ describe('employees.create', () => {
     ).rejects.toMatchObject({ code: 'BAD_REQUEST', cause: { field: 'joiningDate' } });
     await expect(caller.employees.create(await newEmployee(caller, { joiningDate: '2026-06-30' }))).resolves.toBeDefined();
   });
+
+  it.each([
+    ['country', { countryId: 9999 }, 'countryId'],
+    ['role', { roleId: 9999 }, 'roleId'],
+  ])('rejects an unknown %s, naming the field', async (_what, overrides, field) => {
+    const { caller } = await makeCaller();
+
+    await expect(caller.employees.create(await newEmployee(caller, overrides))).rejects.toMatchObject({
+      code: 'BAD_REQUEST',
+      cause: { field },
+    });
+  });
 });
