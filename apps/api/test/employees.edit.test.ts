@@ -49,4 +49,12 @@ describe('employees.update', () => {
     });
     expect(await caller.employees.list({})).toEqual({ rows: [updated], total: 1 });
   });
+
+  it('returns not-found for an employee who does not exist', async () => {
+    const { caller } = await makeCaller();
+
+    await expect(caller.employees.update({ id: 9999, ...(await newEmployee(caller)) })).rejects.toMatchObject({
+      code: 'NOT_FOUND',
+    });
+  });
 });
