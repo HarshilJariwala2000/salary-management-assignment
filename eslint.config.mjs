@@ -7,8 +7,8 @@ export default tseslint.config(
   { ignores: ['**/dist/**', '**/node_modules/**'] },
   ...tseslint.configs.recommended,
   {
-    // domain/ is pure: it imports nothing from the app or from infrastructure.
-    files: ['apps/api/src/domain/**/*.ts'],
+    // domain/ and seed/ are pure: they import nothing from the app or from infrastructure.
+    files: ['apps/api/src/domain/**/*.ts', 'apps/api/src/seed/**/*.ts'],
     rules: {
       'no-restricted-imports': ['error', { patterns: [...dbPackages, ...adapterPaths, '**/logic/**', '**/transport/**'] }],
     },
