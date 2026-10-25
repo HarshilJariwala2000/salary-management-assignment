@@ -11,4 +11,11 @@ describe('generateSeed', () => {
     expect(first).toHaveLength(50);
     expect(second).toEqual(first);
   });
+
+  it('gives every employee a unique, lower-case email, even when names repeat', () => {
+    const emails = generateSeed({ count: 2000, seed: 7, today }).map((e) => e.email);
+
+    expect(new Set(emails).size).toBe(emails.length);
+    for (const email of emails) expect(email).toMatch(/^[a-z0-9]+(\.[a-z0-9]+)*@acme\.test$/);
+  });
 });
