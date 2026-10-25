@@ -155,3 +155,13 @@ Each entry records the context, the decision, the alternatives considered, and t
   - **B:** much of its interface has no caller today, and it includes the fixed-number top/bottom that D-006 scoped out. On a stable test seam, every extra method has to be maintained.
   - **C:** it ties pure maths to the current screens.
 - **Consequences:** a small, stable contract with roughly the spec's test matrix and nothing more.
+
+## D-016 Exception to D-011: sorting the Insights overview in the browser
+
+- **Context:** D-011 puts all sorting and filtering in SQL. On the Insights overview, HR sorts the roles table by clicking a column header. Most of those columns (average, median, spread, max ÷ min) are calculated by `payStats`; they don't exist in the database, so SQL cannot sort by them.
+- **Decision:** the overview's column sorting happens in the browser, on the rows already on screen. The API returns roles in role-name order.
+- **Why this doesn't undermine D-011:**
+  - The data is tiny: at most 15 rows per country (one per role), already loaded.
+  - It is presentation of calculated results, not selection of data. Which employees are counted and which pay group they belong to is still decided in SQL.
+  - The alternative, sorting in TypeScript on the server, would add a sort parameter and a round trip for no gain.
+- **Consequences:** the employee list (thousands of rows, paginated) still sorts in SQL. Any future view that sorts calculated figures across many rows should revisit this.
