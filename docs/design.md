@@ -74,6 +74,7 @@ apps/api/src/
         │            ╲
         ▼             ▼
   domain/payStats          pure maths, imports nothing
+  seed/                    pure: fixed lists (countries, departments, roles) + deterministic seed generator
         ▲
   adapters/typeorm/        entities · mappers · current-assignment helper · stores
                            · error classifier · data source · migrations · seed writer
@@ -83,7 +84,7 @@ apps/api/src/
 ```
 
 **Import rules, enforced by ESLint `no-restricted-imports`:**
-- `domain/` imports nothing.
+- `domain/` and `seed/` import nothing from the app or infrastructure (`seed/` uses Faker).
 - `logic/` may import `domain/` and `packages/shared`, but **never** `typeorm`, `better-sqlite3`, or `adapters/**`.
 - `transport/` may import `logic/` and `packages/shared`, but **never** `adapters/**`.
 - `adapters/` imports `logic/` (to implement the ports and throw domain errors).
