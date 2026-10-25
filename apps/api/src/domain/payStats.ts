@@ -72,6 +72,22 @@ export function summariseByRole(
 }
 
 /**
+ * How many employees the top and the bottom list each show for "top/bottom x%" (D-006):
+ * x% of the group rounded up, at least 1, and at most half the group so the two lists never
+ * overlap. A group of one is the exception: its only employee is both top and bottom.
+ */
+export function earnerCount(headcount: number, percent: number): number {
+  if (!Number.isInteger(percent) || percent < 1 || percent > 50) {
+    throw new RangeError(`Percent must be a whole number from 1 to 50, got ${percent}`);
+  }
+  if (!Number.isInteger(headcount) || headcount < 1) {
+    throw new RangeError(`Headcount must be a positive integer, got ${headcount}`);
+  }
+  if (headcount === 1) return 1;
+  return Math.min(Math.max(1, Math.ceil((headcount * percent) / 100)), Math.floor(headcount / 2));
+}
+
+/**
  * Sorting is the database's job; this checks it in one pass rather than trusting it,
  * so a missing ORDER BY fails loudly instead of producing a wrong median.
  */
