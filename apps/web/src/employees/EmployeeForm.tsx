@@ -54,9 +54,11 @@ function validate(values: EmployeeFormValues): Partial<Record<keyof EmployeeForm
 /** The employee fields. Department and currency are shown read-only, derived from role and country. */
 export function EmployeeForm({
   submitLabel,
+  submitting = false,
   onSubmit = () => {},
 }: {
   submitLabel: string;
+  submitting?: boolean;
   onSubmit?: (draft: EmployeeDraft) => void;
 }) {
   const trpc = useTRPC();
@@ -96,7 +98,9 @@ export function EmployeeForm({
           <NumberInput label="Annual CTC" min={1} allowDecimal={false} thousandSeparator="," {...form.getInputProps('annualCtc')} />
         </SimpleGrid>
         <Group justify="flex-end">
-          <Button type="submit">{submitLabel}</Button>
+          <Button type="submit" loading={submitting}>
+            {submitLabel}
+          </Button>
         </Group>
       </Stack>
     </form>

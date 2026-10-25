@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { MantineProvider } from '@mantine/core';
+import { Notifications } from '@mantine/notifications';
 import { QueryClientProvider, type QueryClient } from '@tanstack/react-query';
 import type { TRPCClient } from '@trpc/client';
 import type { AppRouter } from '@salary/api';
@@ -16,6 +17,7 @@ export function AppProviders({
 }) {
   return (
     <MantineProvider>
+      <Notifications />
       <QueryClientProvider client={queryClient}>
         <TRPCProvider trpcClient={trpcClient} queryClient={queryClient}>
           {children}
