@@ -22,7 +22,7 @@ ACME's HR manager tracks the salaries of 10,000 employees across several countri
 | **Country insights** | Pick a country to see one row per role: headcount, min, max, average, median, and spread (max − min and max ÷ min). |
 | **Role detail** | See a histogram of salaries with the median marked, and the **top and bottom x% of earners** for x from 1 to 50. Each earner shows salary, difference from the median and joining date. |
 
-**Top/bottom x% rules:** the list size is x% of the group, rounded up, with at least 1. x is capped at 50 so the two lists never overlap. Equal salaries are ordered by employee ID so results are always the same.
+**Top/bottom x% rules:** the list size is x% of the group, rounded up, with at least 1, and never more than half the group, so the two lists never overlap (a group of one is the only exception: its one employee is both). x runs from 1 to 50. Equal salaries are ordered by employee ID so results are always the same.
 
 ## 4. Out of scope (and why)
 

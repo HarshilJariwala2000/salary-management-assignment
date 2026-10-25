@@ -115,7 +115,7 @@ earnerCount(headcount: number, percent: number): number
   - 10 equal-width buckets from min to max, each `[lower, upper)`, except the last, which is closed (`[lower, upper]`) so max is included.
   - When min = max: a single bucket holding the whole group.
   - Bucket counts always add up to the headcount.
-- `earnerCount` = `max(1, ceil(headcount × percent / 100))`.
+- `earnerCount` = `max(1, ceil(headcount × percent / 100))`, capped at `floor(headcount / 2)` so the two lists never overlap; a group of one gives 1 (the same person is both top and bottom).
 - A group of one is valid: spread 0, ratio 1, one bucket.
 
 **Error modes:** these are programmer errors, because Zod and the not-found checks run first. Each throws `RangeError`:
@@ -279,7 +279,7 @@ insights.roleDetail ─(Zod)→ InsightsService.roleDetail
 
 | Seam | How | What it covers |
 |---|---|---|
-| `domain/payStats` | direct, table-driven Vitest | summary, median for odd and even counts, spread, a group of one, histogram edges (max in the last bucket, min = max), `earnerCount` rounding (5% of 7 → 1; 10% of 25 → 3; x = 1 and 50), grouping, every `RangeError` including unsorted input |
+| `domain/payStats` | direct, table-driven Vitest | summary, median for odd and even counts, spread, a group of one, histogram edges (max in the last bucket, min = max), `earnerCount` rounding and cap (5% of 7 → 1; 10% of 25 → 3; 50% of 3 → 1; x = 1 and 50; a group of one), grouping, every `RangeError` including unsorted input |
 | tRPC router | `appRouter.createCaller(buildApp({ dataSource, clock: fixed }))` against **in-memory SQLite built by running the migrations** | employee CRUD, Zod and domain errors with `field`, duplicate email (including on update), list search, filters, sorts, page sizes and count; insights wiring: correct pay group, no mixing of countries, NotFound cases, **top/bottom tie order and difference from median**, rounding; a newly created employee appears in both the list and the insights |
 | React pages | React Testing Library, tRPC mocked | field errors, derived department and currency, salary sort disabled until a country is chosen, page-size selector, x% input range, delete confirmation text |
 | Seed generator | direct | identical output on repeat runs, unique emails, no future dates |

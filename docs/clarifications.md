@@ -16,7 +16,7 @@ The team also asked that these choices, and everything deliberately left out, be
 
 Within the scope the team confirmed, I refined these myself:
 
-- **Top/bottom x% earners per pay group** (one country + one role) replaces the vaguer "employees at the low and high ends". x is a whole number from 1 to 50, the list size is x% rounded up with a minimum of 1, and equal salaries are ordered by employee ID so results never change between runs.
+- **Top/bottom x% earners per pay group** (one country + one role) replaces the vaguer "employees at the low and high ends". x is a whole number from 1 to 50, the list size is x% rounded up with a minimum of 1 and a maximum of half the group (so the lists never overlap), and equal salaries are ordered by employee ID so results never change between runs.
 - **Department is derived from job role.** Each role belongs to exactly one department, so the two can never disagree. This narrows answer 4: department is shown but never entered.
 - **Every pay figure stays within one country.** This follows from answer 5: averaging different currencies is meaningless.
 - **Choice of page size** (10 / 20 / 50 / 100) on the employee list.

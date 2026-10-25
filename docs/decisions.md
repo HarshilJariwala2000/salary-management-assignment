@@ -50,7 +50,8 @@ Each entry records the context, the decision, the alternatives considered, and t
 
 - **Decision:**
   - x is a whole number from 1 to 50.
-  - The count is `max(1, ceil(n × x / 100))`.
+  - The count is `max(1, ceil(n × x / 100))`, capped at `floor(n / 2)` so the top and bottom lists never overlap. A group of one is the exception: its single employee is both top and bottom.
+  - The cap was added during ticket 09: without it, rounding up makes small groups overlap (3 people at 50% would list 2 at each end, sharing the middle person).
   - Ties are ordered by employee id: the bottom list by salary ascending, the top list by salary descending, with id ascending in both.
 - **Alternatives:**
   - A fixed number ("lowest 5"), or a toggle between % and number. **Rejected as scope creep:** a percentage compares fairly across groups of any size, whereas a fixed number needs an overlap cap per group and more rules and tests.

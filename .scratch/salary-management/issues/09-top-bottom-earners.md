@@ -6,8 +6,8 @@
 
 **Status:** ready-for-agent
 
-- [ ] `payStats.earnerCount(headcount, percent)` = max(1, ceil(n × x ÷ 100)). `RangeError` for a percent outside 1–50, a non-integer percent, or a headcount below 1
-- [ ] Table-driven tests: 5% of 7 → 1; 10% of 25 → 3; x = 1; x = 50; each `RangeError`
+- [ ] `payStats.earnerCount(headcount, percent)` = max(1, ceil(n × x ÷ 100)), capped at floor(n ÷ 2) so the lists never overlap; a group of one gives 1. `RangeError` for a percent outside 1–50, a non-integer percent, or a headcount below 1
+- [ ] Table-driven tests: 5% of 7 → 1; 10% of 25 → 3; 50% of 3 → 1 (capped); 50% of 10 → 5; x = 1; a group of one; each `RangeError`
 - [ ] `PayGroupStore.earners(countryId, roleId, k)` **selects in SQL**:
   - bottom: `ORDER BY annual_ctc ASC, employee_id ASC LIMIT k`
   - top: `ORDER BY annual_ctc DESC, employee_id ASC LIMIT k`

@@ -167,7 +167,7 @@ Pure, deterministic, works on numbers only, and is its own test seam. Three entr
 
   All values are **unrounded**.
 - **Summarise by role**, given (role, annual CTC) rows sorted by role then salary. Returns one summary per role; consecutive rows with the same role form one group.
-- **Earner count**, given a headcount and a percentage: max(1, ceil(n × x ÷ 100)).
+- **Earner count**, given a headcount and a percentage: max(1, ceil(n × x ÷ 100)), capped at floor(n ÷ 2) so the lists never overlap; a group of one gives 1.
 
 **Error modes:** it **checks** that its input is sorted rather than assuming it. Empty input, unsorted input, a salary that isn't a positive integer, a percentage outside 1–50 or a headcount below 1 each throw a range error. These are programmer errors, because validation and the not-found checks run first.
 
