@@ -16,6 +16,10 @@ export function createEmployeeService({
       return employees.list(query);
     },
 
+    async get(id: number): Promise<EmployeeView> {
+      return (await employees.get(id))!;
+    },
+
     async create(draft: EmployeeDraft): Promise<EmployeeView> {
       // ISO dates compare correctly as strings.
       if (draft.joiningDate > clock.today()) {

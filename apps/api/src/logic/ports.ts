@@ -43,6 +43,7 @@ export interface Page<T> {
 export interface EmployeeStore {
   /** Filtering, sorting and pagination all happen in SQL; ORDER BY always ends with employee id. */
   list(query: EmployeeListQuery): Promise<Page<EmployeeView>>;
+  get(id: number): Promise<EmployeeView | null>;
   /** One transaction: the employee plus a current assignment starting on the joining date. */
   create(draft: EmployeeDraft): Promise<EmployeeView>;
 }

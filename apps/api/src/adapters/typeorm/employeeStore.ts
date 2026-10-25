@@ -34,6 +34,10 @@ export function createEmployeeStore(dataSource: DataSource): EmployeeStore {
       return { rows: rows.map(toEmployeeView), total };
     },
 
+    async get(id) {
+      return (await findEmployee(dataSource, id)) ?? null;
+    },
+
     async create(draft) {
       try {
         return await dataSource.transaction(async (tx) => {
