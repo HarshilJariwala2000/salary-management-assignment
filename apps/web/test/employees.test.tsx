@@ -35,9 +35,20 @@ describe('Employees page', () => {
     });
 
     await user.click(await screen.findByRole('button', { name: '2' }));
-    await waitFor(() => expect(lastListInput(calls)).toEqual({ page: 2, pageSize: 20 }));
+    await waitFor(() => expect(lastListInput(calls)).toMatchObject({ page: 2, pageSize: 20 }));
 
     await user.selectOptions(screen.getByRole('combobox', { name: 'Rows per page' }), '50');
-    await waitFor(() => expect(lastListInput(calls)).toEqual({ page: 1, pageSize: 50 }));
+    await waitFor(() => expect(lastListInput(calls)).toMatchObject({ page: 1, pageSize: 50 }));
+  });
+
+  it('searches by name or email as HR types, starting again from page 1', async () => {
+    const user = userEvent.setup();
+    const { calls } = renderApp({ 'lookups.all': lookups, 'employees.list': { total: 45, rows: [employeeRow()] } });
+    await user.click(await screen.findByRole('button', { name: '2' }));
+    await waitFor(() => expect(lastListInput(calls)).toMatchObject({ page: 2 }));
+
+    await user.type(screen.getByRole('textbox', { name: 'Search name or email' }), 'rao');
+
+    await waitFor(() => expect(lastListInput(calls)).toMatchObject({ search: 'rao', page: 1 }));
   });
 });
