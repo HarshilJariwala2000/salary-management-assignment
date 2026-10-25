@@ -16,5 +16,15 @@ export function createPayGroupStore(dataSource: DataSource): PayGroupStore {
         .getRawMany<{ roleId: number; annualCtc: number }>();
       return rows.map((r) => ({ roleId: Number(r.roleId), annualCtc: Number(r.annualCtc) }));
     },
+
+    async groupSalaries(countryId, roleId) {
+      const rows = await currentAssignments(dataSource)
+        .select('a.annualCtc', 'annualCtc')
+        .where('a.countryId = :countryId AND a.roleId = :roleId', { countryId, roleId })
+        .orderBy('a.annualCtc', 'ASC')
+        .addOrderBy('e.id', 'ASC')
+        .getRawMany<{ annualCtc: number }>();
+      return rows.map((r) => Number(r.annualCtc));
+    },
   };
 }

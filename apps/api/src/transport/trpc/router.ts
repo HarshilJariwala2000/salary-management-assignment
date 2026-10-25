@@ -1,11 +1,12 @@
 import {
   countryOverviewInput,
+  roleDetailInput,
   employeeIdInput,
   employeeInput,
   employeeListInput,
   employeeUpdateInput,
 } from '@salary/shared';
-import { roundSummary } from './rounding';
+import { roundHistogram, roundSummary } from './rounding';
 import { procedure, router } from './trpc';
 
 export const appRouter = router({
@@ -21,6 +22,10 @@ export const appRouter = router({
     countryOverview: procedure.input(countryOverviewInput).query(async ({ ctx, input }) => {
       const { country, roles } = await ctx.insights.countryOverview(input.countryId);
       return { country, roles: roles.map((r) => ({ ...r, summary: roundSummary(r.summary) })) };
+    }),
+    roleDetail: procedure.input(roleDetailInput).query(async ({ ctx, input }) => {
+      const detail = await ctx.insights.roleDetail(input.countryId, input.roleId);
+      return { ...detail, summary: roundSummary(detail.summary), histogram: roundHistogram(detail.histogram) };
     }),
   }),
   lookups: router({

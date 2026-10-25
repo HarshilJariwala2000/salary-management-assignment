@@ -56,6 +56,8 @@ export interface EmployeeStore {
 export interface PayGroupStore {
   /** A country's current (role, annual CTC) pairs, sorted in SQL by role, then salary, then employee id. */
   salariesByRole(countryId: number): Promise<{ roleId: number; annualCtc: number }[]>;
+  /** One pay group's current salaries, sorted in SQL by salary, then employee id. */
+  groupSalaries(countryId: number, roleId: number): Promise<number[]>;
 }
 
 export interface LookupStore {
