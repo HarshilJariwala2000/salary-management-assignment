@@ -1,6 +1,9 @@
 import { Faker, en } from '@faker-js/faker';
 import { countries, roles } from './referenceData';
 
+/** Joining dates fall within the last 15 years. */
+const JOINING_WINDOW_DAYS = 15 * 365;
+
 export interface SeedEmployee {
   fullName: string;
   email: string;
@@ -27,7 +30,7 @@ export function generateSeed({ count, seed, today }: { count: number; seed: numb
     return {
       fullName,
       email: uniqueEmail(fullName, usedEmails),
-      joiningDate: today,
+      joiningDate: daysBefore(today, faker.number.int({ min: 0, max: JOINING_WINDOW_DAYS })),
       countryIsoCode: country.isoCode,
       roleName: role.name,
       annualCtc: Math.round(role.basePayUsd * country.salaryFactor),
@@ -48,4 +51,11 @@ function uniqueEmail(fullName: string, used: Set<string>): string {
   for (let n = 2; used.has(email); n++) email = `${local}.${n}@acme.test`;
   used.add(email);
   return email;
+}
+
+/** The ISO date `days` days before `isoDate`, computed in UTC so it never shifts with the time zone. */
+function daysBefore(isoDate: string, days: number): string {
+  const date = new Date(`${isoDate}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() - days);
+  return date.toISOString().slice(0, 10);
 }
