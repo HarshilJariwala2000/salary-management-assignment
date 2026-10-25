@@ -24,6 +24,14 @@ export function RoleDetailView({
       {`Back to all roles in ${countryName}`}
     </Button>
   );
+  if (detail.isError) {
+    return (
+      <Stack>
+        {back}
+        <Text c="dimmed">{`No employees in this role in ${countryName} any more`}</Text>
+      </Stack>
+    );
+  }
   if (!detail.data) return <Stack>{back}<Loader /></Stack>;
 
   const { role, department, country, summary, histogram } = detail.data;
