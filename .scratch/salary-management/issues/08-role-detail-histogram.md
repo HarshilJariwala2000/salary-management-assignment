@@ -6,9 +6,14 @@
 
 **Status:** ready-for-agent
 
-- [ ] `payStats` histogram: about 10 equal-width buckets from min to max; the last bucket includes max; when min = max there's a single bucket holding the whole group. Each bucket has a lower bound, upper bound and count
-- [ ] Table-driven `payStats` tests cover bucket boundaries, max included, and min = max
-- [ ] `insights.roleDetail` (country, role) returns the rounded summary and the buckets. An empty pay group returns not-found
-- [ ] The detail view opens from a role row and shows the summary, a Mantine Charts histogram with the median marked, and a way back to the overview
-- [ ] The UI shows an empty state when the pay group is empty
-- [ ] Router tests: only the selected pay group's salaries are used; not-found for an empty pay group
+- [ ] `analysePayGroup` also returns the histogram:
+  - 10 equal-width buckets, each including its lower bound and excluding its upper bound, except the last, which includes max
+  - a single bucket when min = max
+  - counts add up to the headcount
+  - unrounded bounds
+- [ ] Table-driven `payStats` tests: bucket boundaries, max in the last bucket, min = max, counts add up
+- [ ] `PayGroupStore.groupSalaries(countryId, roleId)` reads current assignments **sorted in SQL** by salary, then id
+- [ ] The insights service `roleDetail`: an empty pay group → `NotFound(payGroup)`; otherwise it returns the summary and histogram
+- [ ] The router rounds the summary and the histogram bounds
+- [ ] The detail view opens from a role row and shows the summary, a Mantine Charts histogram with the median marked, an empty state, and a way back to the overview
+- [ ] Router tests: only the selected pay group's salaries are used; not-found for an empty pay group; rounding of bounds

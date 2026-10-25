@@ -6,13 +6,22 @@
 
 **Status:** ready-for-agent
 
-- [ ] The pure `payStats` module is written test-first. Given a pay group's salaries in ascending order, its summary returns:
-  - headcount, min, max, average and median (the mean of the two middle values for an even count)
-  - spread amount (max − min) and spread ratio (max ÷ min)
-  - unrounded figures; a group of one is valid
-- [ ] `payStats` overview grouping: given (role, salary) pairs for a country, it returns one summary per role that has employees
-- [ ] Table-driven `payStats` tests cover odd and even medians, average, spread, a group of one, and grouping
-- [ ] `insights.countryOverview` fetches the country's (role, salary) pairs already sorted by the database, and rounds average and median to whole units at the API boundary
-- [ ] The Insights page has a country selector and a sortable roles table, with amounts in the country's currency symbol and thousands separators
-- [ ] Router tests: only roles that have employees in the chosen country are included; countries are never mixed; rounding happens at the boundary
+- [ ] `payStats.analysePayGroup(sortedSalaries)` summary, written test-first:
+  - headcount, min, max, average, median (the mean of the two middle values for an even count), spread amount and ratio
+  - unrounded
+  - **checks the input is sorted**
+  - `RangeError` on empty input, unsorted input, or a salary that isn't a positive integer
+- [ ] `payStats.summariseByRole(rows)`: rows sorted by role then salary; consecutive runs of the same role form one group; `[]` gives `[]`
+- [ ] Table-driven `payStats` tests: odd and even median, average, spread, a group of one, grouping, every `RangeError`
+- [ ] `PayGroupStore.salariesByRole(countryId)` reads current assignments, **sorted in SQL** by role, salary, then id
+- [ ] The insights service `countryOverview`:
+  - unknown country → `NotFound(country)`
+  - otherwise calls `summariseByRole` and fills in role and department names from the lookups
+- [ ] The router rounds average and median to whole units, and the spread ratio to 2 decimal places
+- [ ] The Insights page has a country selector and a sortable roles table, formatted with `Intl.NumberFormat`
+- [ ] Router tests:
+  - only roles that have employees in the chosen country are included
+  - countries are never mixed
+  - not-found for an unknown country
+  - rounding
 - [ ] Page test: the overview table renders the returned rows in the country's currency

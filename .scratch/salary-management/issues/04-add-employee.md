@@ -6,15 +6,24 @@
 
 **Status:** ready-for-agent
 
-- [ ] One shared Zod schema for employee input, used by both the API and the form:
-  - name not blank
-  - email valid
-  - annual CTC a positive whole number
-  - joining date not in the future
-- [ ] "Today" is injected into the future-date check, so tests never depend on the real date
-- [ ] `employees.create` stores the email lower-cased and returns the created employee with derived department and currency
-- [ ] A duplicate email (ignoring case) returns a conflict error tied to the email field
-- [ ] An unknown country or role id returns a bad-request error
-- [ ] The drawer shows the derived department and currency as read-only, field-level errors, and a success message
-- [ ] Router tests: a valid create; each validation failure; the future date (with injected today); duplicate email ignoring case; unknown country or role
+- [ ] One shared Zod employee schema, used by the API and the form:
+  - name trimmed and not blank
+  - email valid, trimmed and lower-cased
+  - annual CTC a positive integer
+  - joining date an ISO date
+- [ ] Employee service `create` checks business rules **before** writing:
+  - a joining date after `clock.today()` → `InvalidField(joiningDate, future)`
+  - an unknown country → `InvalidField(countryId, unknown)`, and an unknown role → `InvalidField(roleId, unknown)`, both checked via `LookupStore`
+- [ ] `EmployeeStore.create` inserts the employee and its first assignment (effective from the joining date) in **one transaction**, and returns an `EmployeeView`
+- [ ] The adapter's error classifier turns SQLite's unique violation on `employee.email` into `DuplicateEmail`
+- [ ] The middleware maps these to BAD_REQUEST / CONFLICT, with `data.field` set
+- [ ] The drawer shows the derived department and currency as read-only, field-level errors (including the server's `field`), and a success message
+- [ ] Router tests:
+  - a valid create
+  - each Zod failure
+  - a future date, with a fixed clock
+  - unknown country or role
+  - a duplicate email ignoring case
+  - each error carries the right `field`
+  - **a created employee appears in both the list and the insights**
 - [ ] Page test: field errors appear next to their fields, and department and currency appear when role and country are picked

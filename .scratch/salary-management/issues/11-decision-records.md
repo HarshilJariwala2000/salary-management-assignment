@@ -4,16 +4,24 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** ready-for-human
 
-- [ ] Entries for:
+D-001 to D-015 were written during the design rounds, alongside the design document. What remains is keeping the document current as implementation decisions come up.
+
+- [x] Entries for:
   - SQLite vs Postgres
-  - TypeORM vs Drizzle, including the esbuild decorator-metadata problem and the explicit-column-types fix
-  - tRPC vs REST: no public REST API; `trpc-to-openapi` as the way out
-  - pay figures always within one country
+  - TypeORM vs Drizzle
+  - tRPC vs REST
+  - pay figures within one country
   - no authentication
-  - the top/bottom x% rules, and fixed-number top/bottom left out
-  - `payStats` as its own test seam
-  - page-size options 10/20/50/100
+  - the top/bottom x% rules
+  - `payStats` as its own seam
+  - page sizes
   - department derived from role
-- [ ] Entries are numbered `D-001`, `D-002`, … so other documents can refer to them
+  - the schema (assignment table)
+  - SQL sorts and filters, the app calculates
+  - ports and adapters
+  - SQLite-specific CHECKs, with tests running migrations
+  - currency symbol from `Intl`
+  - the `payStats` interface
+- [ ] Add an entry for any decision made during implementation that changes or adds to the design

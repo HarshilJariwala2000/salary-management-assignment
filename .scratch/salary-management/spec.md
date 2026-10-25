@@ -100,94 +100,126 @@ All pay figures are always within one country, so currencies are never mixed. Th
 
 ## Implementation Decisions
 
-### Domain model
+The low-level design (schema, layers, module interfaces, request flows) is in the **design document**. The reasoning is in the **decisions document** (D-001 to D-015). This section summarises what an implementer must respect.
 
-- **Country**: id, name, ISO code, currency code (e.g. INR, USD, GBP, EUR, SGD, BRL), currency symbol. The fixed list is created by the seed; there's no UI for editing it.
-- **Department**: id, name. The fixed list is created by the seed.
-- **Role** (job role): id, name, department. **Each role belongs to exactly one department.** Role names are specific (e.g. "Engineering Manager", not "Manager"). The fixed list is created by the seed.
-- **Employee**: id, full name, email (unique, ignoring case; stored lower-cased), country, role, joining date, annual CTC.
-  - Department is **derived from role** and currency is **derived from country**. Neither is stored on the employee.
-- **Annual CTC** is a positive integer in whole units of the country's currency. Decimals, salary components and salary history are not modelled.
-- **Pay group**: the employees sharing one country and one role. Every pay statistic is computed per pay group. Monetary figures are never combined across countries.
-- Database index on (country, role, annual CTC), to serve fetching a pay group's salaries in sorted order.
+### Domain model and schema
+
+- **Country**: id, name, ISO code, currency code (e.g. INR, USD). No currency symbol is stored; the UI formats amounts with `Intl.NumberFormat`.
+- **Department**: id, name.
+- **Role** (job role): id, name, department. **Each role belongs to exactly one department.** Role names are specific (e.g. "Engineering Manager", not "Manager").
+- Countries, departments and roles are fixed lists inserted at boot; there's no UI for editing them.
+- **Employee** (identity): id, full name, email (unique; stored lower-cased), joining date.
+- **Assignment**: an employee's country, role and annual CTC, effective from a date until another date.
+  - **Current assignment** = the row with no end date.
+  - In the MVP, every employee has exactly one current assignment:
+    - create inserts the employee and the first assignment in **one transaction**, effective from the joining date
+    - update **edits the current assignment in place**, so no history is written
+    - changing the joining date keeps the assignment's start date in step
+    - delete is permanent and deletes the employee's assignments with it
+- **Derived values:** department comes from the role and currency from the country. Neither is stored on employee data.
+- **Annual CTC**: a positive integer in whole units of local currency.
+- **Pay group**: the current assignments sharing one country and one role. Every statistic is per pay group, never across currencies.
+- **Database rules:** CHECK constraints enforce every rule the database can, including SQLite-specific ones:
+  - integer salary greater than 0
+  - valid ISO dates
+  - non-blank name
+  - lower-case email
+- **Indexes:**
+  - a partial unique index allows at most one current assignment per employee
+  - a partial index on (country, role, annual CTC, employee id) serves pay-group reads
+- **Never use `synchronize`.** Schema changes go through committed, reviewed migrations, and tests run the same migrations.
+- Every column declares its type explicitly, because esbuild-based tooling doesn't emit decorator metadata.
 
 ### Architecture
 
-- npm workspaces monorepo with three parts: the API app, the web app, and a shared package.
-- **Shared package**: Zod schemas for every API input (employee create/update, list query, insights queries). The API validates with them and the web forms reuse them. It contains no server runtime code.
-- **API**: Node + TypeScript on Fastify.
-  - Fastify hosts the tRPC API (via the Fastify adapter), serves the built React app as static files, and exposes a health endpoint.
-  - The web app imports only the router's *type* from the API.
-- **Data access**: TypeORM with the `better-sqlite3` driver.
-  - Entities use decorators, with the column type written out on every column. esbuild-based tooling (Vitest, tsx) doesn't emit decorator metadata, so TypeORM can't infer the types.
-  - Schema changes use TypeORM migrations committed to the repo. `synchronize` is used only in tests against an in-memory database.
-  - Read-heavy queries use the query builder with explicit column selection.
-- **Web**: React + TypeScript (Vite), Mantine components, Mantine Charts for the histogram, and tRPC with the TanStack Query integration.
-  - Two top-level pages: Employees and Insights.
-  - Add/edit happens in a side drawer. Delete uses a confirmation dialog.
-- **Delivery**: one multi-stage Docker image on `node:22-slim`. Alpine isn't used because `better-sqlite3` is a native module and won't build reliably there.
+- **Monorepo:** npm workspaces with three parts: the API app, the web app, and a shared package of Zod input schemas used by both the API and the forms.
+- **API layers** (ports and adapters). Imports only go downward, and an ESLint import rule enforces it:
+  - **Transport (tRPC):** validates input with the shared schemas, calls one service method, rounds monetary figures, and maps domain errors to tRPC errors that carry a `field`.
+  - **Logic:** services for employees, insights and lookups. Services depend only on **ports**: an employee store, a pay-group store, a lookup store, and a clock.
+    - **The logic layer never imports TypeORM or driver code.**
+    - Business rules live here:
+      - the future-date check against the injected clock
+      - checking that the country and role exist (needed because SQLite's foreign-key errors don't name the column)
+      - assembling the insights
+  - **Domain:** `payStats`, pure maths.
+  - **Adapter (TypeORM):** private entities, the stores, the single "current assignment" query helper, a duplicate-key error classifier, the data source, migrations, and the seed writer.
+  - **Composition root:** the only place that connects adapters to services.
+- **Sorting and filtering:** all of it happens in SQL; all calculation happens in pure TypeScript (D-011).
+- **Domain errors:** not-found (employee, country, pay group); invalid field (country or role unknown, joining date in the future); duplicate email. They map to tRPC NOT_FOUND, BAD_REQUEST and CONFLICT respectively, with the field name included for the forms.
+- **Switching to Postgres:** only the adapter changes (migrations, entity checks, data-source config, error classifier). Nothing above it changes. This is designed for but not verified (out of scope).
+- **Web:** React + TypeScript (Vite), Mantine, Mantine Charts, and tRPC with the TanStack Query integration.
+  - Two pages: Employees and Insights.
+  - Add/edit happens in a side drawer; delete uses a confirmation dialog.
+  - The web app imports only the router's *type*.
+- **Delivery:** one multi-stage Docker image on `node:22-slim`.
   - Runs as a non-root user, with a health check.
-  - Reads `PORT` and `DATABASE_PATH` from the environment; the database file lives on a mounted volume (default `/data/salary.db`).
-  - A compose file starts the image with that volume attached.
-  - On boot, the app runs pending migrations, then seeds only if there are no employees.
-  - The image is host-agnostic and will be deployed to a host before submission.
+  - Reads `PORT` and `DATABASE_PATH` from the environment; the database lives on a mounted volume.
+  - On boot: migrations, then lookups, then seed only if empty.
+  - Deployed to a host before submission.
 
 ### Pay statistics module (`payStats`)
 
-A pure, deterministic module with no I/O and no knowledge of the database or HTTP. **It is a main test seam in its own right** (see Testing Decisions). Its interface:
+Pure, deterministic, works on numbers only, and is its own test seam. Three entry points:
 
-- **Summary of a pay group**, given its salaries in ascending order:
-  - Returns headcount, min, max, average, median, spread amount (max − min) and spread ratio (max ÷ min).
-  - Median: the middle value for an odd count, the mean of the two middle values for an even count.
-  - Average and median are returned unrounded. Rounding to whole currency units happens once, at the API boundary.
-  - A group of one is valid: min = max = median = average, spread 0, ratio 1.
-- **Top and bottom earners**, given a pay group's members (id + salary) and a percentage x:
-  - x must be a whole number from 1 to 50.
-  - The count is ceil(n × x ÷ 100), with a minimum of 1.
-  - Bottom earners are ordered by salary ascending, ties by employee id ascending. Top earners are ordered by salary descending, ties by employee id ascending.
-  - Each result carries its difference from the group median.
-- **Histogram buckets**, given a pay group's salaries:
-  - About 10 equal-width buckets from min to max. The last bucket includes max.
-  - Each bucket returns its lower bound, upper bound and count.
-  - When min = max, there's a single bucket holding the whole group.
-- **Overview grouping**, given (role, salary) pairs for a country: returns one summary per role that has employees.
+- **Analyse a pay group**, given its salaries sorted ascending. Returns:
+  - a summary: headcount, min, max, average, median (the mean of the two middle values for an even count), spread amount (max − min) and spread ratio (max ÷ min)
+  - a histogram: 10 equal-width buckets, each including its lower bound and excluding its upper bound, except the last, which includes max; a single bucket when min = max
+
+  All values are **unrounded**.
+- **Summarise by role**, given (role, annual CTC) rows sorted by role then salary. Returns one summary per role; consecutive rows with the same role form one group.
+- **Earner count**, given a headcount and a percentage: max(1, ceil(n × x ÷ 100)).
+
+**Error modes:** it **checks** that its input is sorted rather than assuming it. Empty input, unsorted input, a salary that isn't a positive integer, a percentage outside 1–50 or a headcount below 1 each throw a range error. These are programmer errors, because validation and the not-found checks run first.
+
+Choosing *which* employees are top and bottom earners is **not** done here. It's a SQL query (see below).
 
 ### API contract (tRPC procedures)
 
-- **lookups.all**: all countries (with currency), departments, and roles (with department), for dropdowns and labels.
+- **lookups.all**: countries (with currency code), departments, and roles (with department).
 - **employees.list**:
-  - Input: page (≥ 1), page size (**exactly one of 10, 20, 50, 100**; default 20; any other value is rejected by schema validation), optional search text, optional country / role / department filters, sort field (name | joiningDate | annualCtc), sort direction.
-  - **Sorting by annualCtc without a country filter is rejected** by schema validation.
-  - Returns the page of employees, with derived department and currency included, plus the total count.
-  - Search is a case-insensitive substring match on name and email.
-- **employees.get**: one employee by id. Not-found error if missing.
-- **employees.create / employees.update**:
-  - Validated with the shared schema.
-  - A duplicate email (ignoring case) returns a conflict error naming the email field.
-  - An unknown country or role id returns a bad-request error.
-- **employees.delete**: permanent delete by id. Not-found error if missing.
+  - **Input:**
+    - page (≥ 1)
+    - page size (**exactly one of 10, 20, 50, 100**; default 20)
+    - optional search text
+    - optional country / role / department filters
+    - sort field (name | joiningDate | annualCtc) and direction
+  - **Validation:** sorting by annualCtc without a country filter is rejected by the schema.
+  - **Search:** a substring match on name or email that ignores case, written as portable SQL that works on both SQLite and Postgres.
+  - **Sorting:** every sort ends with employee id.
+  - **Returns** the page of employees (with country, currency code, role and department) and the total count.
+- **employees.get / create / update / delete**:
+  - Not-found when missing.
+  - Unknown country or role → field-level bad request.
+  - Future joining date → field-level bad request.
+  - Duplicate email (ignoring case, checked against *other* employees on update) → field-level conflict.
+  - The email is trimmed and lower-cased by the shared schema.
 - **insights.countryOverview**:
-  - Input: country id.
-  - Returns the country (with currency) and one row per role that has employees: role, department and the rounded summary statistics.
-- **insights.roleDetail**:
-  - Input: country id, role id, percentage (1–50).
-  - Returns the rounded summary, histogram buckets, top earners and bottom earners. Each earner has id, name, salary, difference from median and joining date.
-  - An empty pay group returns a not-found error, and the UI shows an empty state.
-- The router fetches each pay group's salaries **already sorted by the database** and passes them to `payStats`. `payStats` assumes sorted input and doesn't re-sort.
+  - Input: country id. Not-found if the country doesn't exist.
+  - The SQL returns (role, annual CTC) from current assignments, sorted by role, salary, then id. These go to `payStats`, which summarises by role.
+  - Returns one row per role that has employees (role, department, rounded summary).
+- **insights.roleDetail**: input is country id, role id and percentage (1–50).
+  1. SQL returns the pay group's salaries, sorted. If there are none → not-found.
+  2. `payStats` analyses them → k = `payStats` earner count.
+  3. SQL selects the bottom k (salary ascending, then id) and the top k (salary descending, then id ascending).
+  4. Each earner gets a difference from the median.
+
+  Returns the rounded summary, the histogram, and the bottom and top earners (id, name, salary, difference from median, joining date).
+- **Rounding**, all done in the transport layer:
+  - average, median, histogram bounds and differences from median → whole currency units
+  - spread ratio → 2 decimal places
 
 ### Seed
 
-- **Deterministic**: fixed seeds for both the random number generator and Faker, so every run gives byte-identical data.
-- **About 6 countries with uneven headcount**: India ~40%, US ~25%, UK ~12%, Germany ~10%, Singapore ~8%, Brazil ~5%.
-- **About 15 roles across about 5 departments.**
-- **Salary** = role base pay × country factor × log-normal noise. A small number of outliers are placed deliberately so the top/bottom view has something to show.
-- **Emails are made unique** with a counter suffix.
-- **Joining dates** spread over the past ~15 years, never in the future.
-- All rows are inserted in one transaction.
-- Exposed in two ways:
-  - Seed-if-empty runs automatically on boot.
-  - A manual reset command wipes and reseeds the data.
-- The employee count can be set, so tests can seed a small number.
+- **A pure, deterministic generator** (fixed-seed random numbers and Faker) produces:
+  - the fixed lists (about 6 countries, about 5 departments, about 15 roles)
+  - employees, each with a first assignment
+- **Data shape:**
+  - Country mix: India ~40%, US ~25%, UK ~12%, Germany ~10%, Singapore ~8%, Brazil ~5%.
+  - Salary = role base pay × country factor × log-normal noise, with a few planted outliers.
+  - Unique emails.
+  - Joining dates over the past ~15 years, never in the future.
+- **The adapter writes everything in one transaction.**
+- **Two ways to run it:** seed-if-empty on boot, and a manual reset command. The employee count can be set.
 
 ## Testing Decisions
 
@@ -195,44 +227,46 @@ A pure, deterministic module with no I/O and no knowledge of the database or HTT
 
 - Tests check observable behaviour through a seam: inputs in, outputs out. They never inspect private helpers, TypeORM internals or component state.
 - Each test builds only the data it needs, kept small and readable inside the test. Tests never depend on the 10,000-row seed.
-- Tests are deterministic. There's no wall-clock dependence; "today" is injected wherever the future-date check needs it. There's no network and no shared state between tests.
+- Tests are deterministic. "Today" comes from an injected clock; there's no network and no shared state between tests.
 - Tests are fast. The whole suite runs in seconds under Vitest.
 - Tests are written test-first (red → green → refactor), and the commits show that progression.
 
 ### Seams
 
-1. **`payStats` (main seam for all pay maths).** Pure functions with direct, table-driven tests. All maths edge cases live here:
-   - median for odd and even counts, average, spread amount and ratio, a group of one
-   - top/bottom count rounding (e.g. 5% of 7 → 1; 10% of 25 → 3), the minimum of 1, x = 1 and x = 50
-   - tie-breaking by employee id, and difference from median
-   - histogram bucket boundaries, max included in the last bucket, and min = max
-   - overview grouping
-
-   Choosing this as its own seam means the `payStats` interface is a deliberate, stable contract. This was the developer's choice over testing it only through the router: the maths gets fast, precise tests, at the cost of freezing that interface.
-2. **tRPC router, called in-process through `createCaller` against an in-memory SQLite database.** Covers employee management and the *wiring* of insights, without repeating the maths cases:
-   - create / get / update / delete, including not-found
-   - shared-schema validation failures, including the future-date check with an injected "today"
-   - duplicate email ignoring case
-   - unknown country or role
-   - list search, each filter, combined filters, pagination and total count, each allowed page size (and rejection of any other, e.g. 25), each sort, and rejection of salary sort without a country
-   - insights:
-     - the overview includes only roles that have employees in the chosen country, and never mixes countries
-     - roleDetail draws only from the right pay group, passes salaries sorted, and rounds at the boundary
-     - roleDetail rejects x outside 1–50 and returns not-found for an empty pay group
-3. **Page-level React Testing Library tests for the Employees and Insights pages**, with the tRPC client mocked:
-   - form validation messages appear next to their fields
+1. **`payStats`**: direct, table-driven tests.
+   - summary: median for odd and even counts, average, spread amount and ratio, a group of one
+   - histogram: bucket boundaries, max in the last bucket, min = max, counts adding up to the headcount
+   - earner count: 5% of 7 → 1; 10% of 25 → 3; x = 1; x = 50
+   - grouping by role
+   - every range error, **including unsorted input**
+2. **tRPC router**: called through `createCaller` on the app built by the composition root, against **in-memory SQLite built by running the migrations**, with a fixed clock.
+   - **Employees:**
+     - create / get / update / delete, including not-found
+     - schema validation failures; the future date; unknown country or role
+     - duplicate email ignoring case, and on update, keeping your own email is allowed
+     - each field error carries its `field`
+   - **List:** search, each filter, combined filters, pagination and total count, each allowed page size (and rejection of others, e.g. 25), each sort with the id tie-break, and rejection of salary sort without a country.
+   - **Insights:**
+     - the overview includes only roles that have employees in the chosen country and never mixes countries
+     - not-found for an unknown country and for an empty pay group
+     - the role detail uses only the selected pay group
+     - **top/bottom tie order and difference from median** (selection is SQL, so it's tested here)
+     - rounding
+     - x outside 1–50 is rejected
+   - **Consistency:** a newly created employee appears in both the list and the insights.
+3. **Page-level React Testing Library tests** (tRPC mocked):
+   - field errors appear next to their fields
    - department and currency appear when a role and country are picked
-   - salary sort is disabled until a country filter is set
-   - the page-size selector offers only 10, 20, 50 and 100, defaults to 20, and returns to page 1 when changed
-   - the overview table renders the returned rows in the country's currency
-   - the percentage input rejects values outside 1–50
+   - salary sort is disabled until a country is chosen
+   - the page-size selector offers only 10, 20, 50 and 100, defaults to 20, and resets to page 1
+   - the overview renders in the country's currency
+   - the x% input range is enforced
    - the delete confirmation names the employee
 
-   Individual components aren't tested on their own.
-
-- **Seed smoke test**: seeding a small count twice produces identical output, every email is unique, and no joining date is in the future.
-- **Not tested directly**: TypeORM repositories, Fastify HTTP routing, Docker image behaviour, and anything end-to-end in a browser.
-- **Prior art**: none. The repo is greenfield, so these tests set the patterns.
+- **Seed generator**: the same inputs give identical output, emails are unique, and no date is in the future.
+- **No in-memory fake stores.** Sorting and filtering are SQL, so a fake would test the wrong thing. The only test double is the clock.
+- **Not tested directly:** TypeORM internals, Fastify HTTP routing, Docker behaviour, browser end-to-end. Running the suite against real Postgres is out of scope.
+- **Prior art:** none. The repo is greenfield.
 
 ## Out of Scope
 
@@ -247,21 +281,14 @@ A pure, deterministic module with no I/O and no knowledge of the database or HTT
 - **CI pipeline and automatic deploy.**
 - **End-to-end browser tests.**
 - **Multi-user concurrency and Postgres.** SQLite on one volume fits one HR user; the docs describe moving to Postgres.
+- **Running the tests against real Postgres.** The switch is designed for (only the adapter changes) but not verified.
 
 ## Further Notes
 
-- Decisions and their reasoning will go in `docs/decisions.md`, one numbered entry each:
-  - SQLite vs Postgres
-  - TypeORM vs Drizzle
-  - tRPC vs REST, with the trade-off: no public REST API, and `trpc-to-openapi` as the way out
-  - insights kept within one country
-  - no authentication
-  - the top/bottom x% rules
-  - `payStats` as its own test seam
-- `docs/requirements.md` must stay at **one page** and be committed before any application code.
-- Decided while writing this spec (not discussed explicitly before):
-  - emails are unique ignoring case and stored lower-cased
-  - an empty pay group returns not-found from roleDetail
-  - the default page size is 20 (the developer chose the options 10 / 20 / 50 / 100; the default was picked from them)
-  - average and median are rounded only at the API boundary
+- The **requirements document** must stay at **one page**.
+- The **design document** and the **decisions document** are the source of truth for the schema, layers and interfaces. If this spec and the design document disagree, the design document wins.
+- Decided while writing this spec or the design (not discussed explicitly before):
+  - an empty pay group, or an unknown country in the overview, returns not-found
+  - the default page size is 20
+  - spread ratio is rounded to 2 decimal places
 - The build order is set by the developer separately and is not part of this spec.
