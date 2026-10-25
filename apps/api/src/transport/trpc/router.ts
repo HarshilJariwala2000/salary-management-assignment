@@ -6,7 +6,7 @@ import {
   employeeListInput,
   employeeUpdateInput,
 } from '@salary/shared';
-import { roundHistogram, roundSummary } from './rounding';
+import { roundHistogram, roundMoney, roundSummary } from './rounding';
 import { procedure, router } from './trpc';
 
 export const appRouter = router({
@@ -27,7 +27,7 @@ export const appRouter = router({
       const detail = await ctx.insights.roleDetail(input.countryId, input.roleId, input.percent);
       const roundEarner = <E extends { differenceFromMedian: number }>(e: E) => ({
         ...e,
-        differenceFromMedian: Math.round(e.differenceFromMedian),
+        differenceFromMedian: roundMoney(e.differenceFromMedian),
       });
       return {
         ...detail,
