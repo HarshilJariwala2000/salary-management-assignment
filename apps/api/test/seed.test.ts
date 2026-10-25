@@ -43,4 +43,29 @@ describe('generateSeed', () => {
     expect(share('BR')).toBeLessThan(0.07);
     expect(new Set(employees.map((e) => e.roleName)).size).toBe(15);
   });
+
+  it('varies salaries within a pay group, pays senior roles more, and plants a few outliers', () => {
+    const employees = generateSeed({ count: 5000, seed: 5, today });
+    const byPayGroup = new Map<string, number[]>();
+    for (const e of employees) {
+      const key = `${e.countryIsoCode}/${e.roleName}`;
+      byPayGroup.set(key, [...(byPayGroup.get(key) ?? []), e.annualCtc]);
+    }
+    const median = (key: string) => {
+      const sorted = [...byPayGroup.get(key)!].sort((a, b) => a - b);
+      return sorted[Math.floor(sorted.length / 2)]!;
+    };
+
+    for (const e of employees) expect(Number.isInteger(e.annualCtc) && e.annualCtc > 0).toBe(true);
+    const usEngineers = byPayGroup.get('US/Software Engineer')!;
+    expect(new Set(usEngineers).size).toBeGreaterThan(usEngineers.length / 2);
+    expect(median('US/Engineering Manager')).toBeGreaterThan(median('US/Sales Development Representative'));
+
+    const outliers = employees.filter((e) => {
+      const m = median(`${e.countryIsoCode}/${e.roleName}`);
+      return e.annualCtc > 1.6 * m || e.annualCtc < 0.62 * m;
+    });
+    expect(outliers.length).toBeGreaterThan(0);
+    expect(outliers.length).toBeLessThan(employees.length * 0.03);
+  });
 });
