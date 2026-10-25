@@ -72,4 +72,12 @@ describe('migrated schema', () => {
 
     await expect(insertAssignment(employeeId, { effectiveFrom: '2024-01-15' })).rejects.toThrow(/UNIQUE constraint failed/);
   });
+
+  it('rejects an assignment that points at a country or role that does not exist', async () => {
+    const { insertEmployee, insertAssignment } = await migratedDatabase();
+    const employeeId = await insertEmployee();
+
+    await expect(insertAssignment(employeeId, { countryId: 9999 })).rejects.toThrow(/FOREIGN KEY constraint failed/);
+    await expect(insertAssignment(employeeId, { roleId: 9999 })).rejects.toThrow(/FOREIGN KEY constraint failed/);
+  });
 });
