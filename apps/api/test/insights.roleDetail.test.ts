@@ -56,4 +56,13 @@ describe('insights.roleDetail', () => {
     // Width 0.5: the second bucket spans 100.5 to 101.
     expect(histogram[1]).toEqual({ lower: 101, upper: 101, count: 0 });
   });
+
+  it('returns not-found for an empty pay group or one that does not exist', async () => {
+    const { caller, dataSource } = await makeCaller();
+    await given(dataSource, [employee({ countryIsoCode: 'IN', roleName: 'Software Engineer' })]);
+    const indianRecruiters = await payGroup(caller, 'IN', 'Recruiter');
+
+    await expect(caller.insights.roleDetail(indianRecruiters)).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    await expect(caller.insights.roleDetail({ ...indianRecruiters, roleId: 9999 })).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
 });
