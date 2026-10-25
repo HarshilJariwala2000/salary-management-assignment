@@ -35,8 +35,12 @@ export function createEmployeeStore(dataSource: DataSource): EmployeeStore {
       return { rows: rows.map(toEmployeeView), total };
     },
 
-    update(id, draft) {
-      return updateEmployee(dataSource, id, draft);
+    async update(id, draft) {
+      try {
+        return await updateEmployee(dataSource, id, draft);
+      } catch (error) {
+        throw translateDatabaseError(error);
+      }
     },
 
     async get(id) {
