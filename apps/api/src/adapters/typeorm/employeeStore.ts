@@ -22,8 +22,14 @@ interface EmployeeRow {
 
 export function createEmployeeStore(dataSource: DataSource): EmployeeStore {
   return {
-    async list({ page, pageSize }) {
+    async list({ search, page, pageSize }) {
       const query = currentAssignments(dataSource);
+      if (search) {
+        // lower(...) LIKE works the same on SQLite and Postgres; emails are stored lower-cased.
+        query.andWhere(`(lower(e.fullName) LIKE :pattern ESCAPE '\\' OR e.email LIKE :pattern ESCAPE '\\')`, {
+          pattern: `%${escapeLike(search.toLowerCase())}%`,
+        });
+      }
       const rows = await selectEmployeeView(query.clone())
         .orderBy('e.fullName', 'ASC')
         .addOrderBy('e.id', 'ASC')
@@ -90,6 +96,11 @@ async function updateEmployee(dataSource: DataSource, id: number, draft: Employe
 async function findEmployee(db: DataSource | EntityManager, id: number): Promise<EmployeeView | undefined> {
   const row = await selectEmployeeView(currentAssignments(db)).where('e.id = :id', { id }).getRawOne<EmployeeRow>();
   return row && toEmployeeView(row);
+}
+
+/** Makes %, _ and \\ match themselves in a LIKE pattern. */
+function escapeLike(text: string): string {
+  return text.replace(/[\\%_]/g, (c) => `\\${c}`);
 }
 
 function selectEmployeeView(query: ReturnType<typeof currentAssignments>) {
