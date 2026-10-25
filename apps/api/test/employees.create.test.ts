@@ -35,4 +35,28 @@ describe('employees.create', () => {
     });
     expect((await caller.employees.list({})).rows).toEqual([created]);
   });
+
+  it('trims the name and stores the email trimmed and lower-cased', async () => {
+    const { caller } = await makeCaller();
+
+    const created = await caller.employees.create(
+      await newEmployee(caller, { fullName: '  Asha Rao ', email: '  Asha.Rao@ACME.test ' }),
+    );
+
+    expect(created).toMatchObject({ fullName: 'Asha Rao', email: 'asha.rao@acme.test' });
+  });
+
+  it.each([
+    ['a blank name', { fullName: '   ' }],
+    ['an invalid email', { email: 'not-an-email' }],
+    ['an annual CTC of 0', { annualCtc: 0 }],
+    ['a fractional annual CTC', { annualCtc: 1.5 }],
+    ['an impossible date', { joiningDate: '2023-02-30' }],
+  ])('rejects %s', async (_case, overrides) => {
+    const { caller } = await makeCaller();
+
+    await expect(caller.employees.create(await newEmployee(caller, overrides))).rejects.toMatchObject({
+      code: 'BAD_REQUEST',
+    });
+  });
 });
