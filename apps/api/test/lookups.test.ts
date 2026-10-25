@@ -16,4 +16,18 @@ describe('lookups.all', () => {
       ['US', 'USD'],
     ]);
   });
+
+  it('returns the five departments and each role with the department it belongs to', async () => {
+    const { caller } = await makeCaller();
+
+    const { departments, roles } = await caller.lookups.all();
+
+    expect(departments.map((d) => d.name).sort()).toEqual(['Engineering', 'Finance', 'People', 'Product', 'Sales']);
+    const departmentOf = (roleName: string) => roles.find((r) => r.name === roleName)?.department.name;
+    expect(departmentOf('Software Engineer')).toBe('Engineering');
+    expect(departmentOf('Product Manager')).toBe('Product');
+    expect(departmentOf('Account Executive')).toBe('Sales');
+    expect(departmentOf('Financial Analyst')).toBe('Finance');
+    expect(departmentOf('Recruiter')).toBe('People');
+  });
 });
