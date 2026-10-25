@@ -90,4 +90,11 @@ describe('Employees page', () => {
     await waitFor(() => expect(lastListInput(calls)).toMatchObject({ sortBy: 'name', sortDirection: 'asc' }));
     expect(sort).toHaveDisplayValue('Name (A–Z)');
   });
+
+  it('says so when no employee matches the search or filters', async () => {
+    renderApp({ 'lookups.all': lookups, 'employees.list': { total: 0, rows: [] } });
+
+    expect(await screen.findByText('No employees match your search or filters')).toBeInTheDocument();
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
+  });
 });
