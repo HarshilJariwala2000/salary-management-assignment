@@ -102,4 +102,27 @@ describe('insights.roleDetail', () => {
     expect(bottom.map((e) => e.differenceFromMedian)).toEqual([-1]);
     expect(top.map((e) => e.differenceFromMedian)).toEqual([1]);
   });
+
+  it('never lets the top and bottom lists overlap in a small group', async () => {
+    const { caller, dataSource } = await makeCaller();
+    await given(dataSource, [
+      employee({ fullName: 'Asha Rao', annualCtc: 100 }),
+      employee({ fullName: 'Ben Das', annualCtc: 200 }),
+      employee({ fullName: 'Chen Iyer', annualCtc: 300 }),
+    ]);
+
+    const { bottom, top } = await caller.insights.roleDetail({ ...(await payGroup(caller, 'IN', 'Software Engineer')), percent: 50 });
+
+    expect(bottom.map((e) => e.fullName)).toEqual(['Asha Rao']);
+    expect(top.map((e) => e.fullName)).toEqual(['Chen Iyer']);
+  });
+
+  it.each([0, 51, 12.5])('rejects a percentage of %s', async (percent) => {
+    const { caller, dataSource } = await makeCaller();
+    await given(dataSource, [employee()]);
+
+    await expect(
+      caller.insights.roleDetail({ ...(await payGroup(caller, 'IN', 'Software Engineer')), percent }),
+    ).rejects.toMatchObject({ code: 'BAD_REQUEST' });
+  });
 });
