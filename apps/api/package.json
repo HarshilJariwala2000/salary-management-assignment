@@ -11,6 +11,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@faker-js/faker": "^10.6.0",
     "@fastify/static": "^10.1.7",
     "@salary/shared": "*",
     "@trpc/server": "^11.19.0",
