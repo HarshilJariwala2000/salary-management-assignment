@@ -1,7 +1,14 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { apiError, renderApp } from './support/renderApp';
+import { apiError, renderApp, type ApiCall } from './support/renderApp';
 import { indiaOverview, indiaRecruiterDetail, lookups, twoEmployees } from './support/fixtures';
+
+const lastRoleDetailInput = (calls: ApiCall[]) => calls.filter((c) => c.path === 'insights.roleDetail').at(-1)?.input;
+const cells = (table: HTMLElement) =>
+  within(table)
+    .getAllByRole('row')
+    .slice(1)
+    .map((row) => within(row).getAllByRole('cell').map((cell) => cell.textContent));
 
 async function openInsights(responses: Record<string, unknown> = {}) {
   const user = userEvent.setup();
@@ -67,7 +74,7 @@ describe('Insights page', () => {
     await user.click(await screen.findByRole('button', { name: 'Recruiter' }));
 
     expect(await screen.findByRole('heading', { name: 'Recruiter in India' })).toBeInTheDocument();
-    expect(calls.find((c) => c.path === 'insights.roleDetail')?.input).toEqual({ countryId: 1, roleId: 15 });
+    expect(calls.find((c) => c.path === 'insights.roleDetail')?.input).toMatchObject({ countryId: 1, roleId: 15 });
     expect(screen.getByText('Median ₹8,50,000')).toBeInTheDocument();
     const distribution = screen.getByRole('table', { name: 'Salary distribution' });
     const buckets = within(distribution)
@@ -90,5 +97,25 @@ describe('Insights page', () => {
 
     expect(await screen.findByText('No employees in this role in India any more')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Back to all roles in India' })).toBeInTheDocument();
+  });
+
+  it('lists the top and bottom earners against the median, and asks again for a new percentage', async () => {
+    const { user, calls } = await openInsights();
+    await user.selectOptions(screen.getByLabelText('Country'), 'India');
+    await user.click(await screen.findByRole('button', { name: 'Recruiter' }));
+
+    const top = await screen.findByRole('table', { name: 'Top 10% earners' });
+    expect(cells(top)).toEqual([['Esha Nair', '₹9,00,000', '+₹50,000', '01 Jul 2019']]);
+    expect(cells(screen.getByRole('table', { name: 'Bottom 10% earners' }))).toEqual([
+      ['Dev Shah', '₹8,00,000', '−₹50,000', '14 Feb 2022'],
+    ]);
+    expect(lastRoleDetailInput(calls)).toEqual({ countryId: 1, roleId: 15, percent: 10 });
+
+    const percent = screen.getByLabelText('Top and bottom %');
+    await user.clear(percent);
+    await user.type(percent, '25');
+
+    await waitFor(() => expect(lastRoleDetailInput(calls)).toEqual({ countryId: 1, roleId: 15, percent: 25 }));
+    expect(await screen.findByRole('table', { name: 'Top 25% earners' })).toBeInTheDocument();
   });
 });

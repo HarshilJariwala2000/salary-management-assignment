@@ -94,4 +94,7 @@ export const indiaRecruiterDetail: Outputs['insights']['roleDetail'] = {
     upper: 810_000 + i * 10_000,
     count: i === 0 || i === 9 ? 1 : 0,
   })),
+  // Median 850,000; one earner at each end.
+  bottom: [{ id: 21, fullName: 'Dev Shah', annualCtc: 800_000, joiningDate: '2022-02-14', differenceFromMedian: -50_000 }],
+  top: [{ id: 22, fullName: 'Esha Nair', annualCtc: 900_000, joiningDate: '2019-07-01', differenceFromMedian: 50_000 }],
 };
