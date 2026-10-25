@@ -70,4 +70,17 @@ describe('employees.update', () => {
       caller.employees.update({ id: asha.id, ...(await newEmployee(caller, { email: 'BEN.CARTER@acme.test' })) }),
     ).rejects.toMatchObject({ code: 'CONFLICT', cause: { field: 'email' } });
   });
+
+  it.each([
+    ['a future joining date', { joiningDate: '2026-07-01' }, 'joiningDate'],
+    ['an unknown country', { countryId: 9999 }, 'countryId'],
+    ['an unknown role', { roleId: 9999 }, 'roleId'],
+  ])('rejects %s, as create does, naming the field', async (_case, overrides, field) => {
+    const { caller } = await makeCaller({ today: '2026-06-30' });
+    const created = await caller.employees.create(await newEmployee(caller));
+
+    await expect(
+      caller.employees.update({ id: created.id, ...(await newEmployee(caller, overrides)) }),
+    ).rejects.toMatchObject({ code: 'BAD_REQUEST', cause: { field } });
+  });
 });
