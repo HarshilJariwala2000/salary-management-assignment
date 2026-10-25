@@ -1,6 +1,6 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { renderApp } from './support/renderApp';
+import { apiError, renderApp } from './support/renderApp';
 import { indiaOverview, indiaRecruiterDetail, lookups, twoEmployees } from './support/fixtures';
 
 async function openInsights(responses: Record<string, unknown> = {}) {
@@ -80,5 +80,15 @@ describe('Insights page', () => {
 
     await user.click(screen.getByRole('button', { name: 'Back to all roles in India' }));
     await waitFor(() => expect(screen.getByRole('button', { name: 'Recruiter' })).toBeInTheDocument());
+  });
+
+  it('says so when the pay group has no employees any more', async () => {
+    const { user } = await openInsights({ 'insights.roleDetail': apiError('NOT_FOUND', 'Pay group not found') });
+    await user.selectOptions(screen.getByLabelText('Country'), 'India');
+
+    await user.click(await screen.findByRole('button', { name: 'Recruiter' }));
+
+    expect(await screen.findByText('No employees in this role in India any more')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Back to all roles in India' })).toBeInTheDocument();
   });
 });
