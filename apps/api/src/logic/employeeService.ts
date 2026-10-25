@@ -42,6 +42,10 @@ export function createEmployeeService({
       return employees.create(draft);
     },
 
+    async delete(id: number): Promise<void> {
+      await employees.delete(id);
+    },
+
     async update(id: number, draft: EmployeeDraft): Promise<EmployeeView> {
       await checkDraft(draft);
       const employee = await employees.update(id, draft);

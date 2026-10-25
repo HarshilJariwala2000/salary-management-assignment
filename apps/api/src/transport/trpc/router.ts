@@ -14,6 +14,10 @@ export const appRouter = router({
     list: procedure.input(employeeListInput).query(({ ctx, input }) => ctx.employees.list(input)),
     get: procedure.input(employeeIdInput).query(({ ctx, input }) => ctx.employees.get(input.id)),
     create: procedure.input(employeeInput).mutation(({ ctx, input }) => ctx.employees.create(input)),
+    delete: procedure.input(employeeIdInput).mutation(async ({ ctx, input }) => {
+      await ctx.employees.delete(input.id);
+      return { id: input.id };
+    }),
     update: procedure
       .input(employeeUpdateInput)
       .mutation(({ ctx, input: { id, ...draft } }) => ctx.employees.update(id, draft)),

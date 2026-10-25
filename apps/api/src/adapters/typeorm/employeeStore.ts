@@ -59,6 +59,12 @@ export function createEmployeeStore(dataSource: DataSource): EmployeeStore {
       }
     },
 
+    async delete(id) {
+      // Hard delete; ON DELETE CASCADE removes the employee's assignments.
+      const deleted = await dataSource.query('DELETE FROM employee WHERE id = ? RETURNING id', [id]);
+      return deleted.length > 0;
+    },
+
     async get(id) {
       return (await findEmployee(dataSource, id)) ?? null;
     },

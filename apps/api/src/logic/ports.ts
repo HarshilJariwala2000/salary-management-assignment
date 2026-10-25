@@ -51,6 +51,8 @@ export interface EmployeeStore {
    * The assignment's start date follows the joining date. Null when the employee doesn't exist.
    */
   update(id: number, draft: EmployeeDraft): Promise<EmployeeView | null>;
+  /** Permanent; the employee's assignments go with them. False when the employee doesn't exist. */
+  delete(id: number): Promise<boolean>;
 }
 
 export interface Earner {
