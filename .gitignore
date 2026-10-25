@@ -1,0 +1,7 @@
+node_modules/
+dist/
+coverage/
+.env
+*.db
+.DS_Store
+project-brief.md
