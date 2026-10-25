@@ -68,4 +68,26 @@ describe('Employees page', () => {
     await user.selectOptions(screen.getByLabelText('Filter by country'), 'All countries');
     await waitFor(() => expect(lastListInput(calls)).not.toHaveProperty('countryId'));
   });
+
+  it('sorts by salary only once a country is chosen, and drops that sort if the country is cleared', async () => {
+    const user = userEvent.setup();
+    const { calls } = renderApp({ 'lookups.all': lookups, 'employees.list': twoEmployees });
+    await screen.findByRole('option', { name: 'India' });
+    const sort = screen.getByLabelText('Sort by');
+
+    await user.selectOptions(sort, 'Newest joiners');
+    await waitFor(() => expect(lastListInput(calls)).toMatchObject({ sortBy: 'joiningDate', sortDirection: 'desc' }));
+    expect(within(sort).getByRole('option', { name: 'Highest paid' })).toBeDisabled();
+    expect(sort).toHaveAccessibleDescription('Choose a country to sort by salary');
+
+    await user.selectOptions(screen.getByLabelText('Filter by country'), 'India');
+    await user.selectOptions(sort, 'Highest paid');
+    await waitFor(() =>
+      expect(lastListInput(calls)).toMatchObject({ countryId: 1, sortBy: 'annualCtc', sortDirection: 'desc', page: 1 }),
+    );
+
+    await user.selectOptions(screen.getByLabelText('Filter by country'), 'All countries');
+    await waitFor(() => expect(lastListInput(calls)).toMatchObject({ sortBy: 'name', sortDirection: 'asc' }));
+    expect(sort).toHaveDisplayValue('Name (A–Z)');
+  });
 });
