@@ -55,3 +55,30 @@ export const twoEmployees: EmployeePage = {
     }),
   ],
 };
+
+type CountryOverview = Outputs['insights']['countryOverview'];
+type RoleOverview = CountryOverview['roles'][number];
+
+function roleOverview(
+  role: [number, string],
+  department: [number, string],
+  summary: RoleOverview['summary'],
+): RoleOverview {
+  return { role: { id: role[0], name: role[1] }, department: { id: department[0], name: department[1] }, summary };
+}
+
+/** Name order (Account Executive, Recruiter, Software Engineer) differs from median order, so sorting is visible. */
+export const indiaOverview: CountryOverview = {
+  country: india,
+  roles: [
+    roleOverview([8, 'Account Executive'], [3, 'Sales'], {
+      headcount: 1, min: 2_500_000, max: 2_500_000, average: 2_500_000, median: 2_500_000, spreadAmount: 0, spreadRatio: 1,
+    }),
+    roleOverview([15, 'Recruiter'], [5, 'People'], {
+      headcount: 2, min: 800_000, max: 900_000, average: 850_000, median: 850_000, spreadAmount: 100_000, spreadRatio: 1.13,
+    }),
+    roleOverview([1, 'Software Engineer'], [1, 'Engineering'], {
+      headcount: 3, min: 1_000_000, max: 2_000_001, average: 1_500_000, median: 1_500_000, spreadAmount: 1_000_001, spreadRatio: 2,
+    }),
+  ],
+};
