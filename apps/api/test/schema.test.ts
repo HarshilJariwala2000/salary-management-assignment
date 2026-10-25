@@ -34,4 +34,19 @@ describe('migrated schema', () => {
       insertAssignment(employeeId, { effectiveFrom: '2024-03-01', effectiveTo: '2024-02-01' }),
     ).rejects.toThrow(/CHECK constraint failed/);
   });
+
+  it('rejects an email that is not lower-case', async () => {
+    const { insertEmployee } = await migratedDatabase();
+
+    await expect(insertEmployee({ email: 'Asha.Rao@acme.test' })).rejects.toThrow(/CHECK constraint failed/);
+  });
+
+  it('rejects a second employee with the same email', async () => {
+    const { insertEmployee } = await migratedDatabase();
+    await insertEmployee({ email: 'asha.rao@acme.test' });
+
+    await expect(insertEmployee({ fullName: 'Another Asha', email: 'asha.rao@acme.test' })).rejects.toThrow(
+      /UNIQUE constraint failed: employee\.email/,
+    );
+  });
 });
