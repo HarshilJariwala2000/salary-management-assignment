@@ -1,33 +1,47 @@
-import { List, Loader, SimpleGrid, Stack, Title } from '@mantine/core';
+import { Group, Loader, Stack, Table, Text, Title } from '@mantine/core';
 import { useQuery } from '@tanstack/react-query';
+import { formatDate, formatMoney } from '../format';
 import { useTRPC } from '../trpc';
 
 export function EmployeesPage() {
   const trpc = useTRPC();
-  const lookups = useQuery(trpc.lookups.all.queryOptions());
+  const employees = useQuery(trpc.employees.list.queryOptions({}));
 
   return (
     <Stack>
-      <Title order={2}>Employees</Title>
-      {lookups.data ? (
-        <SimpleGrid cols={{ base: 1, sm: 2 }}>
-          <Stack gap="xs">
-            <Title order={4}>Countries</Title>
-            <List>
-              {lookups.data.countries.map((c) => (
-                <List.Item key={c.id}>{`${c.name} · ${c.currencyCode}`}</List.Item>
+      <Group justify="space-between">
+        <Title order={2}>Employees</Title>
+        {employees.data && <Text c="dimmed">{`${employees.data.total.toLocaleString('en-US')} employees`}</Text>}
+      </Group>
+      {employees.data ? (
+        <Table.ScrollContainer minWidth={900}>
+          <Table striped highlightOnHover>
+            <Table.Thead>
+              <Table.Tr>
+                <Table.Th>Name</Table.Th>
+                <Table.Th>Email</Table.Th>
+                <Table.Th>Country</Table.Th>
+                <Table.Th>Role</Table.Th>
+                <Table.Th>Department</Table.Th>
+                <Table.Th>Joined</Table.Th>
+                <Table.Th ta="right">Annual CTC</Table.Th>
+              </Table.Tr>
+            </Table.Thead>
+            <Table.Tbody>
+              {employees.data.rows.map((e) => (
+                <Table.Tr key={e.id}>
+                  <Table.Td>{e.fullName}</Table.Td>
+                  <Table.Td>{e.email}</Table.Td>
+                  <Table.Td>{e.country.name}</Table.Td>
+                  <Table.Td>{e.role.name}</Table.Td>
+                  <Table.Td>{e.department.name}</Table.Td>
+                  <Table.Td>{formatDate(e.joiningDate)}</Table.Td>
+                  <Table.Td ta="right">{formatMoney(e.annualCtc, e.country.currencyCode)}</Table.Td>
+                </Table.Tr>
               ))}
-            </List>
-          </Stack>
-          <Stack gap="xs">
-            <Title order={4}>Roles</Title>
-            <List>
-              {lookups.data.roles.map((r) => (
-                <List.Item key={r.id}>{`${r.name} · ${r.department.name}`}</List.Item>
-              ))}
-            </List>
-          </Stack>
-        </SimpleGrid>
+            </Table.Tbody>
+          </Table>
+        </Table.ScrollContainer>
       ) : (
         <Loader />
       )}
