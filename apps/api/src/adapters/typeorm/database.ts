@@ -1,7 +1,9 @@
 import 'reflect-metadata';
 import { DataSource } from 'typeorm';
+import { AssignmentEntity } from './entities/AssignmentEntity';
 import { CountryEntity } from './entities/CountryEntity';
 import { DepartmentEntity } from './entities/DepartmentEntity';
+import { EmployeeEntity } from './entities/EmployeeEntity';
 import { RoleEntity } from './entities/RoleEntity';
 import { InitialSchema1761400000000 } from './migrations/1761400000000-InitialSchema';
 import { ensureReferenceData } from './referenceData';
@@ -14,7 +16,7 @@ export async function openDatabase({ database }: { database: string }): Promise<
   const dataSource = new DataSource({
     type: 'better-sqlite3',
     database,
-    entities: [CountryEntity, DepartmentEntity, RoleEntity],
+    entities: [CountryEntity, DepartmentEntity, RoleEntity, EmployeeEntity, AssignmentEntity],
     migrations: [InitialSchema1761400000000],
     synchronize: false,
   });
