@@ -1,8 +1,10 @@
-import { Faker, en } from '@faker-js/faker';
-import { countries, roles } from './referenceData';
+import { Faker, base, de, en, en_GB, en_IN, en_US, pt_BR, type LocaleDefinition } from '@faker-js/faker';
+import { countries, roles, type CountryReference } from './referenceData';
 
 /** Joining dates fall within the last 15 years. */
 const JOINING_WINDOW_DAYS = 15 * 365;
+
+const locales: Record<CountryReference['fakerLocale'], LocaleDefinition> = { en_IN, en_US, en_GB, de, en, pt_BR };
 
 export interface SeedEmployee {
   fullName: string;
@@ -18,15 +20,17 @@ export interface SeedEmployee {
  * Pure: no I/O, no clock (today is passed in), no global random state.
  */
 export function generateSeed({ count, seed, today }: { count: number; seed: number; today: string }): SeedEmployee[] {
-  const faker = new Faker({ locale: [en] });
-  faker.seed(seed);
-  const country = countries[0]!;
-  const role = roles[0]!;
-
+  const faker = seeded(new Faker({ locale: [en, base] }), seed);
+  // One name generator per country, each with its own seed, so names look local.
+  const namesByCountry = new Map(
+    countries.map((c, i) => [c.isoCode, seeded(new Faker({ locale: [locales[c.fakerLocale], en, base] }), seed + i + 1)]),
+  );
   const usedEmails = new Set<string>();
 
   return Array.from({ length: count }, () => {
-    const fullName = faker.person.fullName();
+    const country = faker.helpers.weightedArrayElement(countries.map((c) => ({ weight: c.weight, value: c })));
+    const role = faker.helpers.weightedArrayElement(roles.map((r) => ({ weight: r.weight, value: r })));
+    const fullName = namesByCountry.get(country.isoCode)!.person.fullName();
     return {
       fullName,
       email: uniqueEmail(fullName, usedEmails),
@@ -38,11 +42,16 @@ export function generateSeed({ count, seed, today }: { count: number; seed: numb
   });
 }
 
+function seeded(faker: Faker, seed: number): Faker {
+  faker.seed(seed);
+  return faker;
+}
+
 /** firstname.lastname@acme.test, ASCII-folded and lower-cased, with a counter when the name repeats. */
 function uniqueEmail(fullName: string, used: Set<string>): string {
   const local = fullName
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[̀-ͯ]/g, '')
     .replace(/ß/g, 'ss')
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '.')
