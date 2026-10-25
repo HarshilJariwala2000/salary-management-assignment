@@ -1,7 +1,7 @@
-import { screen, within } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { renderApp } from './support/renderApp';
-import { lookups, twoEmployees } from './support/fixtures';
+import { employeeRow, lookups, twoEmployees } from './support/fixtures';
 
 async function openAddEmployee(responses: Record<string, unknown> = {}) {
   const user = userEvent.setup();
@@ -11,6 +11,15 @@ async function openAddEmployee(responses: Record<string, unknown> = {}) {
   // The dropdowns fill once lookups arrive, as a user would see.
   await within(form).findByRole('option', { name: 'Germany' });
   return { user, form, ...app };
+}
+
+async function fillValidEmployee(user: ReturnType<typeof userEvent.setup>, form: HTMLElement) {
+  await user.type(within(form).getByLabelText('Full name'), 'Asha Rao');
+  await user.type(within(form).getByLabelText('Email'), ' Asha.Rao@ACME.test');
+  await user.selectOptions(within(form).getByLabelText('Country'), 'India');
+  await user.selectOptions(within(form).getByLabelText('Role'), 'Software Engineer');
+  await user.type(within(form).getByLabelText('Joining date'), '2024-01-15');
+  await user.type(within(form).getByLabelText('Annual CTC'), '1200000');
 }
 
 describe('Add employee', () => {
@@ -46,5 +55,27 @@ describe('Add employee', () => {
     await user.click(within(form).getByRole('button', { name: 'Add employee' }));
 
     expect(within(form).getByLabelText('Joining date')).toHaveAccessibleDescription('Joining date cannot be in the future');
+  });
+
+  it('creates the employee, closes the form, confirms, and refreshes the list', async () => {
+    const { user, form, calls } = await openAddEmployee({ 'employees.create': employeeRow({ id: 99 }) });
+    const listCallsBefore = calls.filter((c) => c.path === 'employees.list').length;
+
+    await fillValidEmployee(user, form);
+    await user.click(within(form).getByRole('button', { name: 'Add employee' }));
+
+    await waitFor(() =>
+      expect(calls.find((c) => c.path === 'employees.create')?.input).toEqual({
+        fullName: 'Asha Rao',
+        email: 'asha.rao@acme.test',
+        countryId: 1,
+        roleId: 1,
+        joiningDate: '2024-01-15',
+        annualCtc: 1_200_000,
+      }),
+    );
+    expect(await screen.findByText('Asha Rao added')).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Add employee' })).not.toBeInTheDocument());
+    await waitFor(() => expect(calls.filter((c) => c.path === 'employees.list').length).toBeGreaterThan(listCallsBefore));
   });
 });
