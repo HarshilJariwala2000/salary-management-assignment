@@ -46,6 +46,11 @@ export interface EmployeeStore {
   get(id: number): Promise<EmployeeView | null>;
   /** One transaction: the employee plus a current assignment starting on the joining date. */
   create(draft: EmployeeDraft): Promise<EmployeeView>;
+  /**
+   * Edits the employee and their current assignment in place: no history row is written (D-010).
+   * The assignment's start date follows the joining date. Null when the employee doesn't exist.
+   */
+  update(id: number, draft: EmployeeDraft): Promise<EmployeeView | null>;
 }
 
 export interface LookupStore {

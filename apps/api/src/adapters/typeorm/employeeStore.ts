@@ -1,4 +1,5 @@
 import type { DataSource, EntityManager } from 'typeorm';
+import type { EmployeeDraft } from '@salary/shared';
 import type { EmployeeStore, EmployeeView } from '../../logic/ports';
 import { currentAssignments } from './currentAssignments';
 import { translateDatabaseError } from './errors';
@@ -34,6 +35,10 @@ export function createEmployeeStore(dataSource: DataSource): EmployeeStore {
       return { rows: rows.map(toEmployeeView), total };
     },
 
+    update(id, draft) {
+      return updateEmployee(dataSource, id, draft);
+    },
+
     async get(id) {
       return (await findEmployee(dataSource, id)) ?? null;
     },
@@ -57,6 +62,25 @@ export function createEmployeeStore(dataSource: DataSource): EmployeeStore {
       }
     },
   };
+}
+
+async function updateEmployee(dataSource: DataSource, id: number, draft: EmployeeDraft): Promise<EmployeeView | null> {
+  return dataSource.transaction(async (tx) => {
+    const updated = await tx.query('UPDATE employee SET full_name = ?, email = ?, joining_date = ? WHERE id = ? RETURNING id', [
+      draft.fullName,
+      draft.email,
+      draft.joiningDate,
+      id,
+    ]);
+    if (updated.length === 0) return null;
+    // In place: the current assignment changes, no history row is written (D-010).
+    await tx.query(
+      `UPDATE assignment SET country_id = ?, role_id = ?, annual_ctc = ?, effective_from = ?
+       WHERE employee_id = ? AND effective_to IS NULL`,
+      [draft.countryId, draft.roleId, draft.annualCtc, draft.joiningDate, id],
+    );
+    return (await findEmployee(tx, id))!;
+  });
 }
 
 async function findEmployee(db: DataSource | EntityManager, id: number): Promise<EmployeeView | undefined> {

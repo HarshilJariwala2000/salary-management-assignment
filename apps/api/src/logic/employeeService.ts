@@ -36,6 +36,10 @@ export function createEmployeeService({
       }
       return employees.create(draft);
     },
+
+    async update(id: number, draft: EmployeeDraft): Promise<EmployeeView> {
+      return (await employees.update(id, draft))!;
+    },
   };
 }
 
