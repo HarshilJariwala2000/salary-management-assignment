@@ -49,4 +49,10 @@ describe('migrated schema', () => {
       /UNIQUE constraint failed: employee\.email/,
     );
   });
+
+  it.each(['', '   '])('rejects a blank full name (%j)', async (fullName) => {
+    const { insertEmployee } = await migratedDatabase();
+
+    await expect(insertEmployee({ fullName })).rejects.toThrow(/CHECK constraint failed/);
+  });
 });
