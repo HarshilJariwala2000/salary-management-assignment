@@ -35,7 +35,9 @@ export function generateSeed({ count, seed, today }: { count: number; seed: numb
   return Array.from({ length: count }, () => {
     const country = faker.helpers.weightedArrayElement(countries.map((c) => ({ weight: c.weight, value: c })));
     const role = faker.helpers.weightedArrayElement(roles.map((r) => ({ weight: r.weight, value: r })));
-    const fullName = namesByCountry.get(country.isoCode)!.person.fullName();
+    const names = namesByCountry.get(country.isoCode)!;
+    // firstName + lastName rather than fullName(), which sometimes adds titles and suffixes.
+    const fullName = `${names.person.firstName()} ${names.person.lastName()}`;
     return {
       fullName,
       email: uniqueEmail(fullName, usedEmails),
