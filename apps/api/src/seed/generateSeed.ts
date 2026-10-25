@@ -1,6 +1,11 @@
 import { Faker, base, de, en, en_GB, en_IN, en_US, pt_BR, type LocaleDefinition } from '@faker-js/faker';
 import { countries, roles, type CountryReference } from './referenceData';
 
+/** Spread of pay within a pay group (standard deviation of the log-normal noise). */
+const PAY_SPREAD = 0.15;
+/** Share of employees deliberately paid far above or below their pay group. */
+const OUTLIER_RATE = 0.01;
+
 /** Joining dates fall within the last 15 years. */
 const JOINING_WINDOW_DAYS = 15 * 365;
 
@@ -37,9 +42,25 @@ export function generateSeed({ count, seed, today }: { count: number; seed: numb
       joiningDate: daysBefore(today, faker.number.int({ min: 0, max: JOINING_WINDOW_DAYS })),
       countryIsoCode: country.isoCode,
       roleName: role.name,
-      annualCtc: Math.round(role.basePayUsd * country.salaryFactor),
+      annualCtc: annualCtc(faker, role.basePayUsd * country.salaryFactor),
     };
   });
+}
+
+/**
+ * Typical pay x log-normal noise, rounded to the nearest 100. About 1% are planted
+ * outliers (roughly 2x or 0.5x typical pay) so the top/bottom view has something to show.
+ */
+function annualCtc(faker: Faker, typicalPay: number): number {
+  // Box-Muller: a standard normal sample from two uniform ones.
+  const u1 = faker.number.float({ min: Number.EPSILON, max: 1 });
+  const u2 = faker.number.float({ min: 0, max: 1 });
+  const normal = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+  let pay = typicalPay * Math.exp(PAY_SPREAD * normal);
+  if (faker.number.float({ min: 0, max: 1 }) < OUTLIER_RATE) {
+    pay *= faker.datatype.boolean() ? faker.number.float({ min: 1.8, max: 2.4 }) : faker.number.float({ min: 0.42, max: 0.55 });
+  }
+  return Math.max(100, Math.round(pay / 100) * 100);
 }
 
 function seeded(faker: Faker, seed: number): Faker {
