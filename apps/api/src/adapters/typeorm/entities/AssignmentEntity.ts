@@ -1,10 +1,11 @@
-import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { Check, Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { CountryEntity } from './CountryEntity';
 import { EmployeeEntity } from './EmployeeEntity';
 import { RoleEntity } from './RoleEntity';
 
 /** An employee's country, role and annual CTC from one date to another. effectiveTo null = current (D-010). */
 @Entity('assignment')
+@Check('ck_assignment_annual_ctc', `typeof(annual_ctc) = 'integer' AND annual_ctc > 0`)
 export class AssignmentEntity {
   @PrimaryGeneratedColumn({ type: 'integer' })
   id!: number;

@@ -39,7 +39,8 @@ export class InitialSchema1761400000000 implements MigrationInterface {
         role_id        INTEGER NOT NULL REFERENCES role (id) ON DELETE RESTRICT,
         annual_ctc     INTEGER NOT NULL,
         effective_from TEXT NOT NULL,
-        effective_to   TEXT
+        effective_to   TEXT,
+        CONSTRAINT ck_assignment_annual_ctc CHECK (typeof(annual_ctc) = 'integer' AND annual_ctc > 0)
       )`);
   }
 
