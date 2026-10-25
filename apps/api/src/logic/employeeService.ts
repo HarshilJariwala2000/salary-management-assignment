@@ -43,7 +43,7 @@ export function createEmployeeService({
     },
 
     async delete(id: number): Promise<void> {
-      await employees.delete(id);
+      if (!(await employees.delete(id))) throw new NotFound('employee');
     },
 
     async update(id: number, draft: EmployeeDraft): Promise<EmployeeView> {
