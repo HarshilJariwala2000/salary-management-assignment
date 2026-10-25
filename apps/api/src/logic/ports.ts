@@ -5,8 +5,21 @@ export interface Country {
   currencyCode: string;
 }
 
+export interface Department {
+  id: number;
+  name: string;
+}
+
+export interface Role {
+  id: number;
+  name: string;
+  department: Department;
+}
+
 export interface Lookups {
   countries: Country[];
+  departments: Department[];
+  roles: Role[];
 }
 
 export interface LookupStore {
