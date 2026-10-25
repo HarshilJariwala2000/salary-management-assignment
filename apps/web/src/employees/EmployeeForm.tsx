@@ -1,4 +1,5 @@
-import { Button, Group, NativeSelect, NumberInput, SimpleGrid, Stack, TextInput } from '@mantine/core';
+import { useState } from 'react';
+import { Alert, Button, Group, NativeSelect, NumberInput, SimpleGrid, Stack, TextInput } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { useQuery } from '@tanstack/react-query';
 import { employeeInput, type EmployeeDraft } from '@salary/shared';
@@ -11,6 +12,12 @@ export interface EmployeeFormValues {
   roleId: string;
   joiningDate: string;
   annualCtc: number | '';
+}
+
+/** What a failed save reports back: a field to attach the message to, or none for a general failure. */
+export interface SubmitProblem {
+  field?: string;
+  message: string;
 }
 
 const emptyValues: EmployeeFormValues = {
@@ -55,22 +62,36 @@ function validate(values: EmployeeFormValues): Partial<Record<keyof EmployeeForm
 export function EmployeeForm({
   submitLabel,
   submitting = false,
-  onSubmit = () => {},
+  onSubmit = async () => {},
 }: {
   submitLabel: string;
   submitting?: boolean;
-  onSubmit?: (draft: EmployeeDraft) => void;
+  onSubmit?: (draft: EmployeeDraft) => Promise<SubmitProblem | void>;
 }) {
   const trpc = useTRPC();
   const lookups = useQuery(trpc.lookups.all.queryOptions());
   const form = useForm<EmployeeFormValues>({ initialValues: emptyValues, validate });
+  const [failure, setFailure] = useState<string | null>(null);
+
+  async function submit(values: EmployeeFormValues) {
+    setFailure(null);
+    const problem = await onSubmit(employeeInput.parse(toCandidate(values)));
+    if (!problem) return;
+    if (problem.field && problem.field in emptyValues) form.setFieldError(problem.field, problem.message);
+    else setFailure(problem.message);
+  }
 
   const country = lookups.data?.countries.find((c) => String(c.id) === form.values.countryId);
   const role = lookups.data?.roles.find((r) => String(r.id) === form.values.roleId);
 
   return (
-    <form onSubmit={form.onSubmit((values) => onSubmit(employeeInput.parse(toCandidate(values))))} noValidate>
+    <form onSubmit={form.onSubmit(submit)} noValidate>
       <Stack>
+        {failure && (
+          <Alert color="red" role="alert">
+            {`Not saved: ${failure}`}
+          </Alert>
+        )}
         <TextInput label="Full name" {...form.getInputProps('fullName')} />
         <TextInput label="Email" {...form.getInputProps('email')} />
         <SimpleGrid cols={2}>
