@@ -97,6 +97,9 @@ export function RoleDetailView({
         allowNegative={false}
         w={220}
       />
+      {summary.headcount === 1 && (
+        <Text c="dimmed">Only one employee in this role, so they appear in both lists</Text>
+      )}
       <SimpleGrid cols={{ base: 1, md: 2 }}>
         <EarnerTable caption={`Top ${percent}% earners`} earners={top} currencyCode={country.currencyCode} />
         <EarnerTable caption={`Bottom ${percent}% earners`} earners={bottom} currencyCode={country.currencyCode} />
