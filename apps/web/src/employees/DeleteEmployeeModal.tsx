@@ -1,7 +1,6 @@
+import { useState } from 'react';
 import { Alert, Button, Group, Modal, Stack, Text } from '@mantine/core';
-import { notifications } from '@mantine/notifications';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useTRPC } from '../trpc';
+import { useEmployeeWrites } from './useEmployeeWrites';
 
 /** Confirms a permanent delete, naming the employee so HR can't remove the wrong person. */
 export function DeleteEmployeeModal({
@@ -11,33 +10,27 @@ export function DeleteEmployeeModal({
   employee: { id: number; fullName: string } | null;
   onClose: () => void;
 }) {
-  const trpc = useTRPC();
-  const queryClient = useQueryClient();
-  const remove = useMutation(trpc.employees.delete.mutationOptions());
+  const writes = useEmployeeWrites();
+  const [failure, setFailure] = useState<string | null>(null);
 
   function close() {
-    remove.reset();
+    setFailure(null);
     onClose();
   }
 
   async function confirm() {
     if (!employee) return;
-    try {
-      await remove.mutateAsync({ id: employee.id });
-    } catch {
-      return; // remove.error is shown in the dialog
-    }
-    notifications.show({ color: 'green', message: `${employee.fullName} deleted` });
-    close();
-    await queryClient.invalidateQueries({ queryKey: trpc.employees.list.queryKey() });
+    const problem = await writes.remove(employee);
+    if (problem) setFailure(problem.message);
+    else close();
   }
 
   return (
     <Modal opened={employee !== null} onClose={close} title="Delete employee" centered>
       <Stack>
-        {remove.error && (
+        {failure && (
           <Alert color="red" role="alert">
-            {`Not deleted: ${remove.error.message}`}
+            {`Not deleted: ${failure}`}
           </Alert>
         )}
         <Text>{`Delete ${employee?.fullName}? This cannot be undone.`}</Text>
@@ -45,7 +38,7 @@ export function DeleteEmployeeModal({
           <Button variant="default" onClick={close}>
             Cancel
           </Button>
-          <Button color="red" loading={remove.isPending} onClick={confirm}>
+          <Button color="red" loading={writes.removing} onClick={confirm}>
             Delete
           </Button>
         </Group>

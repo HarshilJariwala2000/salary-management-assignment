@@ -1,10 +1,9 @@
 import { Drawer, Loader } from '@mantine/core';
-import { notifications } from '@mantine/notifications';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import type { EmployeeDraft } from '@salary/shared';
 import { useTRPC } from '../trpc';
 import { EmployeeForm, type EmployeeFormValues, type SubmitProblem } from './EmployeeForm';
-import { toSubmitProblem } from './submitProblem';
+import { useEmployeeWrites } from './useEmployeeWrites';
 
 /** Edits one employee, loading their current values first. employeeId null = closed. */
 export function EditEmployeeDrawer({ employeeId, onClose }: { employeeId: number | null; onClose: () => void }) {
@@ -13,22 +12,13 @@ export function EditEmployeeDrawer({ employeeId, onClose }: { employeeId: number
     ...trpc.employees.get.queryOptions({ id: employeeId ?? 0 }),
     enabled: employeeId !== null,
   });
-  const queryClient = useQueryClient();
-  const update = useMutation(trpc.employees.update.mutationOptions());
+  const writes = useEmployeeWrites();
 
   async function submit(draft: EmployeeDraft): Promise<SubmitProblem | void> {
     if (employeeId === null) return;
-    try {
-      const saved = await update.mutateAsync({ id: employeeId, ...draft });
-      notifications.show({ color: 'green', message: `${saved.fullName} updated` });
-      onClose();
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: trpc.employees.list.queryKey() }),
-        queryClient.invalidateQueries({ queryKey: trpc.employees.get.queryKey({ id: employeeId }) }),
-      ]);
-    } catch (error) {
-      return toSubmitProblem(error);
-    }
+    const problem = await writes.update(employeeId, draft);
+    if (problem) return problem;
+    onClose();
   }
 
   return (
@@ -38,7 +28,7 @@ export function EditEmployeeDrawer({ employeeId, onClose }: { employeeId: number
           key={employee.data.id}
           submitLabel="Save changes"
           initialValues={toFormValues(employee.data)}
-          submitting={update.isPending}
+          submitting={writes.updating}
           onSubmit={submit}
         />
       ) : (
