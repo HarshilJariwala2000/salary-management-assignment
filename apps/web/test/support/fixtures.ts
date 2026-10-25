@@ -82,3 +82,16 @@ export const indiaOverview: CountryOverview = {
     }),
   ],
 };
+
+/** Recruiters in India: 800,000 and 900,000, so buckets are 10,000 wide. */
+export const indiaRecruiterDetail: Outputs['insights']['roleDetail'] = {
+  country: india,
+  role: { id: 15, name: 'Recruiter' },
+  department: { id: 5, name: 'People' },
+  summary: indiaOverview.roles[1]!.summary,
+  histogram: Array.from({ length: 10 }, (_, i) => ({
+    lower: 800_000 + i * 10_000,
+    upper: 810_000 + i * 10_000,
+    count: i === 0 || i === 9 ? 1 : 0,
+  })),
+};
