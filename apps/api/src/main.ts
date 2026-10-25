@@ -12,8 +12,9 @@ import { generateSeed } from './seed/generateSeed';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const port = Number(process.env.PORT ?? 3000);
-const databasePath = process.env.DATABASE_PATH ?? path.resolve(here, '../salary.db');
-const webDist = process.env.WEB_DIST ?? path.resolve(here, '../../web/dist');
+// Relative paths in the environment resolve against the working directory.
+const databasePath = path.resolve(process.env.DATABASE_PATH ?? path.resolve(here, '../salary.db'));
+const webDist = path.resolve(process.env.WEB_DIST ?? path.resolve(here, '../../web/dist'));
 
 const dataSource = await openDatabase({ database: databasePath });
 const app = buildApp({ dataSource, clock: { today: localToday } });

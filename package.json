@@ -7,6 +7,7 @@
     "apps/*"
   ],
   "scripts": {
+    "build": "npm run build -w @salary/web && npm run build -w @salary/api",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "lint": "eslint .",
     "test": "npm run test --workspaces --if-present",
