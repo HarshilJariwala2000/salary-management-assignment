@@ -25,3 +25,4 @@
   - not-found for an unknown country
   - rounding
 - [ ] Page test: the overview table renders the returned rows in the country's currency
+- [ ] Router test (moved from ticket 04): an employee created through `employees.create` is counted in the overview
