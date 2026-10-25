@@ -80,4 +80,13 @@ describe('employees.create', () => {
       cause: { field },
     });
   });
+
+  it('rejects an email another employee already has, ignoring case, naming the email field', async () => {
+    const { caller } = await makeCaller();
+    await caller.employees.create(await newEmployee(caller, { email: 'asha.rao@acme.test' }));
+
+    await expect(
+      caller.employees.create(await newEmployee(caller, { fullName: 'Another Asha', email: 'ASHA.RAO@acme.test' })),
+    ).rejects.toMatchObject({ code: 'CONFLICT', cause: { field: 'email' } });
+  });
 });
