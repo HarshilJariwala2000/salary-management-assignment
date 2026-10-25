@@ -67,3 +67,36 @@ describe('summariseByRole', () => {
     expect(() => summariseByRole(rows)).toThrow(RangeError);
   });
 });
+
+describe('analysePayGroup: histogram', () => {
+  const counts = (salaries: number[]) => analysePayGroup(salaries).histogram.map((b) => b.count);
+
+  it('splits min..max into 10 equal-width buckets, each holding salaries from its lower bound up to its upper', () => {
+    // min 100, max 1000: width 90, so the buckets start at 100, 190, 280, …, 910.
+    const { histogram } = analysePayGroup([100, 200, 300, 400, 500, 600, 700, 800, 900, 1000]);
+
+    expect(histogram.map((b) => [b.lower, b.upper])).toEqual([
+      [100, 190], [190, 280], [280, 370], [370, 460], [460, 550],
+      [550, 640], [640, 730], [730, 820], [820, 910], [910, 1000],
+    ]);
+    expect(histogram.map((b) => b.count)).toEqual([1, 1, 1, 1, 1, 1, 1, 1, 1, 1]);
+  });
+
+  it('puts a salary on a boundary in the bucket that starts there, and max in the last bucket', () => {
+    expect(counts([100, 190, 1000])).toEqual([1, 1, 0, 0, 0, 0, 0, 0, 0, 1]);
+  });
+
+  it('keeps max in the last bucket even when the width is not a round number', () => {
+    // width 0.3 is not exact in floating point.
+    expect(counts([1, 4])).toEqual([1, 0, 0, 0, 0, 0, 0, 0, 0, 1]);
+  });
+
+  it('uses a single bucket when everyone earns the same', () => {
+    expect(analysePayGroup([500, 500, 500]).histogram).toEqual([{ lower: 500, upper: 500, count: 3 }]);
+  });
+
+  it('counts every salary exactly once', () => {
+    const salaries = [101, 150, 151, 333, 334, 335, 700, 701, 999, 1000, 1000];
+    expect(counts(salaries).reduce((a, b) => a + b, 0)).toBe(salaries.length);
+  });
+});
