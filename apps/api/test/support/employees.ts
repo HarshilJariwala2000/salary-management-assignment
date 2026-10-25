@@ -1,4 +1,5 @@
 import type { DataSource } from 'typeorm';
+import type { makeCaller } from './app';
 import { writeEmployees } from '../../src/adapters/typeorm/employeeWriter';
 import type { SeedEmployee } from '../../src/seed/generateSeed';
 
@@ -24,4 +25,20 @@ export function given(dataSource: DataSource, employees: SeedEmployee[]): Promis
 /** n employees named "Employee 01".."Employee nn", so name order is predictable. */
 export function numberedEmployees(n: number): SeedEmployee[] {
   return Array.from({ length: n }, (_, i) => employee({ fullName: `Employee ${String(i + 1).padStart(2, '0')}` }));
+}
+
+type Caller = Awaited<ReturnType<typeof makeCaller>>['caller'];
+
+/** A valid create input for an Indian recruiter; override only what the test cares about. */
+export async function newEmployee(caller: Caller, overrides: Record<string, unknown> = {}) {
+  const { countries, roles } = await caller.lookups.all();
+  return {
+    fullName: 'Asha Rao',
+    email: 'asha.rao@acme.test',
+    countryId: countries.find((c) => c.isoCode === 'IN')!.id,
+    roleId: roles.find((r) => r.name === 'Recruiter')!.id,
+    joiningDate: '2024-01-15',
+    annualCtc: 1_200_000,
+    ...overrides,
+  };
 }
