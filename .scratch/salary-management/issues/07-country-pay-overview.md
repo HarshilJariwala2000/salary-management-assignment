@@ -26,3 +26,4 @@
   - rounding
 - [ ] Page test: the overview table renders the returned rows in the country's currency
 - [ ] Router test (moved from ticket 04): an employee created through `employees.create` is counted in the overview
+- [ ] Router test (moved from ticket 05): after `employees.update` changes a salary, the overview reflects the new salary and the old one is gone
