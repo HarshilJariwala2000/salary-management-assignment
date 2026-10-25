@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { ActionIcon, Button, Group, Loader, NativeSelect, Pagination, Stack, Table, Text, Title } from '@mantine/core';
-import { useDisclosure } from '@mantine/hooks';
+import { ActionIcon, Button, Group, Loader, NativeSelect, Pagination, Stack, Table, Text, TextInput, Title } from '@mantine/core';
+import { useDebouncedValue, useDisclosure } from '@mantine/hooks';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { DEFAULT_PAGE_SIZE, PAGE_SIZES } from '@salary/shared';
 import { AddEmployeeDrawer } from '../employees/AddEmployeeDrawer';
@@ -14,8 +14,11 @@ export function EmployeesPage() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<(typeof PAGE_SIZES)[number]>(DEFAULT_PAGE_SIZE);
+  const [search, setSearch] = useState('');
+  // Wait for a pause in typing before asking the API.
+  const [debouncedSearch] = useDebouncedValue(search.trim(), 250);
   const employees = useQuery({
-    ...trpc.employees.list.queryOptions({ page, pageSize }),
+    ...trpc.employees.list.queryOptions({ page, pageSize, ...(debouncedSearch && { search: debouncedSearch }) }),
     placeholderData: keepPreviousData,
   });
   const totalPages = employees.data ? Math.max(1, Math.ceil(employees.data.total / pageSize)) : 1;
@@ -29,6 +32,16 @@ export function EmployeesPage() {
         </Group>
         <Button onClick={addDrawer.open}>Add employee</Button>
       </Group>
+      <TextInput
+        label="Search name or email"
+        placeholder="e.g. asha or @acme.test"
+        value={search}
+        onChange={(event) => {
+          setSearch(event.currentTarget.value);
+          setPage(1);
+        }}
+        maw={360}
+      />
       <AddEmployeeDrawer opened={addOpened} onClose={addDrawer.close} />
       <EditEmployeeDrawer employeeId={editingId} onClose={() => setEditingId(null)} />
       {employees.data ? (
