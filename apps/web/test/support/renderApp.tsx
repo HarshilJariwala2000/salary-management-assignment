@@ -31,10 +31,28 @@ function cannedLink(responses: ApiResponses, calls: ApiCall[]): TRPCLink<AppRout
           return;
         }
         const response = responses[op.path];
-        const data = typeof response === 'function' ? response(op.input) : response;
-        observer.next({ result: { type: 'data', data } });
-        observer.complete();
+        try {
+          const data = typeof response === 'function' ? response(op.input) : response;
+          observer.next({ result: { type: 'data', data } });
+          observer.complete();
+        } catch (error) {
+          observer.error(error instanceof TRPCClientError ? error : TRPCClientError.from(error as Error));
+        }
       });
+}
+
+const httpStatus = { BAD_REQUEST: 400, NOT_FOUND: 404, CONFLICT: 409, INTERNAL_SERVER_ERROR: 500 } as const;
+
+/**
+ * A canned response that fails the way the real API does: same error shape,
+ * including the `field` our errorFormatter adds for domain errors.
+ */
+export function apiError(code: keyof typeof httpStatus, message: string, field?: string) {
+  return () => {
+    throw TRPCClientError.from({
+      error: { message, code: -32000, data: { code, httpStatus: httpStatus[code], path: '', field } },
+    });
+  };
 }
 
 export function renderApp(responses: ApiResponses) {

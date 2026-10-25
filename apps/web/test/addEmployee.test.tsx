@@ -1,6 +1,6 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { renderApp } from './support/renderApp';
+import { apiError, renderApp } from './support/renderApp';
 import { employeeRow, lookups, twoEmployees } from './support/fixtures';
 
 async function openAddEmployee(responses: Record<string, unknown> = {}) {
@@ -77,5 +77,31 @@ describe('Add employee', () => {
     expect(await screen.findByText('Asha Rao added')).toBeInTheDocument();
     await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Add employee' })).not.toBeInTheDocument());
     await waitFor(() => expect(calls.filter((c) => c.path === 'employees.list').length).toBeGreaterThan(listCallsBefore));
+  });
+
+  it('shows a problem the server finds, such as a duplicate email, next to its field', async () => {
+    const { user, form } = await openAddEmployee({
+      'employees.create': apiError('CONFLICT', 'Another employee already has this email', 'email'),
+    });
+
+    await fillValidEmployee(user, form);
+    await user.click(within(form).getByRole('button', { name: 'Add employee' }));
+
+    await waitFor(() =>
+      expect(within(form).getByLabelText('Email')).toHaveAccessibleDescription('Another employee already has this email'),
+    );
+    expect(screen.getByRole('dialog', { name: 'Add employee' })).toBeInTheDocument();
+  });
+
+  it('says the employee was not saved when the server fails for another reason, keeping what was typed', async () => {
+    const { user, form } = await openAddEmployee({
+      'employees.create': apiError('INTERNAL_SERVER_ERROR', 'Database is unavailable'),
+    });
+
+    await fillValidEmployee(user, form);
+    await user.click(within(form).getByRole('button', { name: 'Add employee' }));
+
+    expect(await within(form).findByRole('alert')).toHaveTextContent('Not saved: Database is unavailable');
+    expect(within(form).getByLabelText('Full name')).toHaveValue('Asha Rao');
   });
 });
