@@ -20,3 +20,12 @@ export class InvalidField extends DomainError {
     this.name = 'InvalidField';
   }
 }
+
+export class DuplicateEmail extends DomainError {
+  readonly kind = 'CONFLICT';
+  readonly field = 'email';
+  constructor() {
+    super('Another employee already has this email');
+    this.name = 'DuplicateEmail';
+  }
+}
