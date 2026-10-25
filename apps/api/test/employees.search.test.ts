@@ -41,4 +41,36 @@ describe('employees.list: search, filters and sorting', () => {
     expect(await names(caller.employees.list({ countryId: india, departmentId: engineering }))).toEqual(['Asha Rao']);
     expect(await names(caller.employees.list({ departmentId: engineering, search: 'be' }))).toEqual(['Bea Lopez', 'Ben Carter']);
   });
+
+  it('sorts by name, joining date or salary in either direction, breaking ties by employee id', async () => {
+    const { caller, dataSource } = await makeCaller();
+    await given(dataSource, [
+      employee({ fullName: 'Asha Rao', joiningDate: '2020-01-01', annualCtc: 1_500_000 }),
+      employee({ fullName: 'Arjun Mehta', joiningDate: '2022-06-01', annualCtc: 900_000 }),
+      employee({ fullName: 'Anil Kumar', joiningDate: '2018-03-15', annualCtc: 1_500_000 }),
+    ]);
+    const india = (await caller.lookups.all()).countries.find((c) => c.isoCode === 'IN')!.id;
+
+    expect(await names(caller.employees.list({ sortBy: 'name', sortDirection: 'desc' }))).toEqual([
+      'Asha Rao',
+      'Arjun Mehta',
+      'Anil Kumar',
+    ]);
+    expect(await names(caller.employees.list({ sortBy: 'joiningDate', sortDirection: 'desc' }))).toEqual([
+      'Arjun Mehta',
+      'Asha Rao',
+      'Anil Kumar',
+    ]);
+    // Asha and Anil earn the same; Asha was added first, so she comes first either way.
+    expect(await names(caller.employees.list({ countryId: india, sortBy: 'annualCtc', sortDirection: 'desc' }))).toEqual([
+      'Asha Rao',
+      'Anil Kumar',
+      'Arjun Mehta',
+    ]);
+    expect(await names(caller.employees.list({ countryId: india, sortBy: 'annualCtc', sortDirection: 'asc' }))).toEqual([
+      'Arjun Mehta',
+      'Asha Rao',
+      'Anil Kumar',
+    ]);
+  });
 });
