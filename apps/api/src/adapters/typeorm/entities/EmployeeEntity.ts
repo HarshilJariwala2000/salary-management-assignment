@@ -2,6 +2,7 @@ import { Check, Column, Entity, PrimaryGeneratedColumn, Unique } from 'typeorm';
 
 @Entity('employee')
 @Unique('uq_employee_email', ['email'])
+@Check('ck_employee_full_name', 'length(trim(full_name)) > 0')
 @Check('ck_employee_email', 'email = lower(email)')
 @Check('ck_employee_joining_date', 'date(joining_date) IS joining_date')
 export class EmployeeEntity {

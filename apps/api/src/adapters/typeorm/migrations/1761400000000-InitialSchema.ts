@@ -31,6 +31,7 @@ export class InitialSchema1761400000000 implements MigrationInterface {
         email        TEXT NOT NULL,
         joining_date TEXT NOT NULL,
         CONSTRAINT uq_employee_email        UNIQUE (email),
+        CONSTRAINT ck_employee_full_name    CHECK (length(trim(full_name)) > 0),
         CONSTRAINT ck_employee_email        CHECK (email = lower(email)),
         CONSTRAINT ck_employee_joining_date CHECK (date(joining_date) IS joining_date)
       )`);
